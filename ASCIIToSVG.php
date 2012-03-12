@@ -333,54 +333,123 @@ class SVGPath {
   /*
    * Perform a scale transform on an SVG path command given the following
    * inputs:
-   *  * Proportional X value
-   *  * Proportional Y value
+   *  * Path command as an array of arguments
    *  * X offset
    *  * Y offset
-   *  * New width
-   *  * New height
-   *  * Old width
-   *  * Old height
+   *  * Transform width
+   *  * Transform height
+   *  * Current width
+   *  * Current height
+   *
+   * Although we currently are doing this on our 100x100 paths (which should
+   * make these calculations really easy), this should support less regular
+   * sizes as well.
+   *
+   * Most of these transformations have a well-defined format. Absolute
+   * values are translated by multiplying them with their scaled proportional
+   * value and added to their offset. Relative values are calculated as
+   * their proportion to the old scale to the new one.
+   *
+   * Generally, SVG path commands specify absolute positions when the command
+   * is capitalized and relative positions when lowercased.
    */
-  private function scaleTransform($cmd, $pX, $pY, $x, $y, $w, $h, $oW, $oH) {
+  private function scaleTransform($cmd, $x, $y, $w, $h, $oW, $oH) {
+    /* Calculate our new proportions for scaling on the X / Y axis */
+    $pX = $w / $oW;
+    $pY = $h / $oH;
+
     $svgCmd = array_shift($cmd);
     switch ($svgCmd) {
+    /* Close the path, this is the hardest one. */
     case 'Z':
+    case 'z':
       return 'Z';
 
+    /* Move to a position */ 
     case 'M':
       list ($tX, $tY) = $cmd;
       $tX = $x + ($tX * $pX);
       $tY = $y + ($tY * $pY);
       return "M {$tX} {$tY}";
+    case 'm':
+      list ($tX, $tY) = $cmd;
+      $tX = $x + (($tX / $oW) * $w);
+      $tY = $x + (($tY / $oH) * $w);
+      return "m {$tX} {$tY}";
 
+    /*
+     * Create an arc. The radii are relative to the coordinate space.
+     * x-axis rotation / large arc / sweep don't need translation.
+     */
     case 'A':
       list ($rX, $rY, $rot, $arc, $sweep, $tX, $tY) = $cmd;
+      $rX = (($rX / $oW) * $w);
+      $rY = (($rY / $oH) * $h);
       $tX = $x + ($tX * $pX);
       $tY = $y + ($tY * $pY);
-      $rX = ($rX / $oW) * $w;
-      $rY = ($rY / $oH) * $h;
       return "A {$rX} {$rY} {$rot} {$arc} {$sweep} {$tX} {$tY}";
+    case 'a':
+      list ($rX, $rY, $rot, $arc, $sweep, $tX, $tY) = $cmd;
+      $rX = $x + ($rX / $oW) * $w;
+      $rY = $y + ($rY / $oH) * $h;
+      $tX = $x + (($tX / $oW) * $w);
+      $tY = $y + (($tY / $oH) * $w);
+      return "a {$rX} {$rY} {$rot} {$arc} {$sweep} {$tX} {$tY}";
 
+    /*
+     * Cubic Bézier curves. The control points are all relative to the new
+     * scale.
+     */
     case 'C':
       list ($cX1, $cY1, $cX2, $cY2, $tX, $tY) = $cmd;
       $cX1 = $x + ($cX1 * $pX);
       $cX2 = $x + ($cX2 * $pX);
-      $tX = $x + ($tX * $pX);
       $cY1 = $y + ($cY1 * $pY);
       $cY2 = $y + ($cY2 * $pY);
+      $tX = $x + ($tX * $pX);
       $tY = $y + ($tY * $pY);
       return "C {$cX1} {$cY1} {$cX2} {$cY2} {$tX} {$tY}";
+    case 'c':
+      list ($cX1, $cY1, $cX2, $cY2, $tX, $tY) = $cmd;
+      $cX1 = (($cX1 / $oW) * $w);
+      $cX2 = (($cX2 / $oW) * $w);
+      $cY1 = (($cY1 / $oH) * $w);
+      $cY2 = (($cY2 / $oH) * $w);
+      $tX = (($tX / $oW) * $w);
+      $tY = (($tY / $oH) * $w);
+      return "c {$cX1} {$cY1} {$cX2} {$cY2} {$tX} {$tY}";
 
+    /* Horizontal line-to */
     case 'H':
       list ($tX) = $cmd;
       $tX = $x + ($tX * $pX);
       return "H {$tX}";
+    case 'h':
+      list ($tX) = $cmd;
+      $tX = (($tX / $oH) * $w);
+      return "H {$tX}";
 
+    /* Vertical line-to */
     case 'V':
       list ($tY) = $cmd;
       $tY = $y + ($tY * $pY);
       return "V {$tY}";
+    case 'v':
+      list ($tY) = $cmd;
+      $tY = (($tY / $oH) * $w);
+      return "v {$tY}";
+
+    /* Line-to */
+    case 'L':
+      list ($tX, $tY) = $cmd;
+      $tX = $x + ($tX * $pX);
+      $tY = $y + ($tY * $pY);
+      return "L {$tX} {$tY}";
+    case 'l':
+      list ($tX, $tY) = $cmd;
+      $tX = (($tX / $oW) * $w);
+      $tY = (($tY / $oH) * $w);
+      return "l {$tX} {$tY}";
     }
 
     return '';
@@ -425,17 +494,13 @@ class SVGPath {
         }
       }
 
-      /* Calculate our new proportions for scaling on the X / Y axis */
-      $pX = ($maxX - $minX) / 100.0;
-      $pY = ($maxY - $minY) / 100.0;
-
       /*
        * Need to provide width and height for proportional values; things like
        * arc radii end up being proportional to the new width as opposed to
        * the coordinate system.
        */
-      $w = $maxX - $minX;
-      $h = $maxY - $minY;
+      $tW = $maxX - $minX;
+      $tH = $maxY - $minY;
 
       /*
        * We need to represent each command individually because every one
@@ -454,6 +519,8 @@ class SVGPath {
                         array ('A', 50, 25, 0, 0, 0, 0, 20),
                         array ('Z'),
                       );
+        $oW = 100;
+        $oH = 100;
         break;
 
       case 'document':
@@ -464,6 +531,8 @@ class SVGPath {
                         array ('H', 0),
                         array ('Z'),
                       );
+        $oW = 100;
+        $oH = 100;
         break;
       }
 
@@ -471,8 +540,7 @@ class SVGPath {
       $out = "<path id=\"$id\" d=\"";
       foreach ($cmds as $cmd) {
         /* Run our transformation on every command */
-        $svgCmd = $this->scaleTransform($cmd, $pX, $pY, $minX, $minY, $w, $h,
-                                        100, 100);
+        $svgCmd = $this->scaleTransform($cmd, $minX, $minY, $tW, $tH, $oW, $oH);
         $out .= "$svgCmd ";
       }
       $out .= '" ';
@@ -1065,9 +1133,9 @@ SVG;
           }
 
           /*
-            * The walk routine may attempt to add the point again, so skip it.
-            * If we don't, we can miss the line or end up with just a point.
-            */
+           * The walk routine may attempt to add the point again, so skip it.
+           * If we don't, we can miss the line or end up with just a point.
+           */
           if ($dir == self::DIR_UP) {
             $rInc = -1; $cInc = 0;
           } elseif ($dir == self::DIR_DOWN) {
