@@ -95,7 +95,10 @@ have time and inclination to do so.
 ## How Do I Draw? ###########################################################
 
 Enough yammering about the impetus, code, and functionality. I bet you want
-to draw something. ASCIIToSVG supports a few different ways to do that.
+to draw something. ASCIIToSVG supports a few different ways to do that. If
+you have more questions, take a look at some of the files in the `test`
+subdirectory. (If you have a particularly nice diagram you'd like to see
+included for demo, feel free to send it my way!)
 
 ### Basics: Boxes and Lines #################################################
 
@@ -116,7 +119,9 @@ To draw a box or turn a line, you need to specify corners. The following
 characters are valid corner characters:
 
  * `+`: Angular corner connector (plus)
- * `/` and `\`: Quadratic Bézier corners (forward slash, backslash)
+ * `/` and `\`: Quadratic Bézier corners (forward slash, backslash). These
+   should not be relied on for rounded corners as they will eventually be
+   deprecated for use as diagonal lines.
  * `'` and `.`: Also quadratic Bézier corners, but for tighter turns
    (apostrophe, period)
 
@@ -157,9 +162,9 @@ edge of the object, and defining that reference at the bottom of the input.
 Let me reiterate that the references *must* be defined at the *bottom* of
 the input. An example:
 
-    /-------------\  .--------------.
+    .-------------.  .--------------.
     |[1]Red Box   |  |[2]Blue Box   |
-    \-------------/  '--------------'
+    '-------------'  '--------------'
 
     [1]: {"fill":"#aa4444"}
     [2]: {"fill":"#ccccff"}
@@ -199,9 +204,28 @@ Special objects are implemented as closed SVG paths in a 100x100 box and are
 scaled on-demand. Support for external SVG paths for additional object types
 would be a nifty feature to add at some point in the future.
 
+## External Resources #######################################################
+
+There are some interesting sites that you might be interested in; these are
+mildly related to the goals of ASCIIToSVG:
+
+ * [ditaa][1] (previously mentioned) is a Java utility with a very similar
+   syntax that translates ASCII diagrams into PNG files.
+ * [App::Asciio][4] (previously mentioned) allows you to programmatically
+   draw ASCII diagrams.
+ * [Asciiflow][6] is a web front-end to designing ASCII flowcharts. Its
+   output is compatible with ASCIIToSVG.
+   
+If you have something really cool that is related to ASCIIToSVG, and I have
+failed to list it here, do please let me know.
+
 ## References ###############################################################
+
+If there's nothing here, you're looking at this README post-markdown-ified.
+
 [1]: http://ditaa.sourceforge.net/ "ditaa - DIagrams Through ASCII Art"
 [2]: http://mtrack.wezfurlong.org/ "mtrack project management software"
 [3]: https://bitbucket.org/dhobsd/asciitosvg/wiki/Home "a2s wiki page"
 [4]: http://search.cpan.org/dist/App-Asciio/lib/App/Asciio.pm "App::Asciio"
 [5]: http://www.w3.org/TR/SVG/paths.html "SVG Paths"
+[6]: http://www.asciiflow.com/ "Asciiflow"
