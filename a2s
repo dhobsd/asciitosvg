@@ -36,7 +36,7 @@ $opts = getopt("hi::o::s::");
 
 if (isset($opts['h'])) {
   echo <<<USAGE
-Usage: a2s [-i [-|filename]] [-o [-|filename]] [-s x-scale,y-scale]
+Usage: a2s [-i[-|filename]] [-o[-|filename]] [-sx-scale,y-scale]
   -h: This usage screen.
   -i: Path to input text file. If unspecified, or set to "-" (hyphen),
       stdin is used.
