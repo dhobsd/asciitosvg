@@ -7,6 +7,6 @@
 |  ascii     2      svg   | 
 |                         | 
 '-------------------------' 
-   https://9vx.org/~dho/a2s/  
+ https://9vx.org/~dho/a2s/  
  
 [1]: {"fill":"#88d"}
