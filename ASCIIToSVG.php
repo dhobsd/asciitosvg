@@ -1111,15 +1111,20 @@ SVG;
           if (($w == '=' || $w == '-') && $n != '|' && $n != ':' && $w != '-' &&
               $e != '=' && $e != '|' && $s != ':') {
             $dir = self::DIR_LEFT;
-          }
-          if (($e == '=' || $e == '-') && $n != '|' && $n != ':' && $w != '-' &&
-              $w != '=' && $s != '|' && $s != ':') {
+          } elseif (($e == '=' || $e == '-') && $n != '|' && $n != ':' && 
+              $w != '-' && $w != '=' && $s != '|' && $s != ':') {
             $dir = self::DIR_RIGHT;
           } elseif (($s == '|' || $s == ':') && $n != '|' && $n != ':' &&
-                    $w != '-' && $w != '=' && $e != '-' && $e != '=') {
+                    $w != '-' && $w != '=' && $e != '-' && $e != '=' &&
+                    (($char != '.' && $char != "'") || 
+                     ($char == '.' && $s != '.') || 
+                     ($char == "'" && $s != "'"))) {
             $dir = self::DIR_DOWN;
           } elseif (($n == '|' || $n == ':') && $s != '|' && $s != ':' &&
-                    $w != '-' && $w != '=' && $e != '-' && $e != '=') {
+                    $w != '-' && $w != '=' && $e != '-' && $e != '=' &&
+                    (($char != '.' && $char != "'") || 
+                     ($char == '.' && $s != '.') || 
+                     ($char == "'" && $s != "'"))) {
             $dir = self::DIR_UP;
           }
           break;
@@ -1278,15 +1283,15 @@ SVG;
     }
 
     /* Follow the edge for as long as we can */
-    while ($this->isEdge($this->getChar($r, $c), $dir)) {
+    $cur = $this->getChar($r, $c);
+    while ($this->isEdge($cur, $dir)) {
       $c += $cInc;
       $r += $rInc;
+      $cur = $this->getChar($r, $c);
     }
 
-    $char = $this->getChar($r, $c);
-
-    if ($this->isCorner($char)) {
-      if ($char == "\\" || $char == '/' || $char == '.' || $char == "'") {
+    if ($this->isCorner($cur)) {
+      if ($cur == "\\" || $cur == '/' || $cur == '.' || $cur == "'") {
         $path->addControlPoint($c, $r);
       } else {
         $path->addPoint($c, $r);
@@ -1302,27 +1307,36 @@ SVG;
        * try to go in any direction other than the one opposite of where
        * we just came from -- no backtracking.
        */
+      $n = $this->getChar($r - 1, $c);
+      $s = $this->getChar($r + 1, $c);
+      $e = $this->getChar($r, $c + 1);
+      $w = $this->getChar($r, $c - 1);
+      
       if ($this->isCorner($this->grid[$r + $rInc][$c + $cInc]) ||
           $this->isEdge($this->grid[$r + $rInc][$c + $cInc], $dir)) {
         return $this->walk($path, $r + $rInc, $c + $cInc, $dir);
       } elseif ($dir != self::DIR_DOWN &&
-                ($this->isCorner($this->grid[$r - 1][$c]) ||
-                 $this->isEdge($this->grid[$r - 1][$c], self::DIR_UP))) {
-        return $this->walk($path, $r - 1, $c, self::DIR_UP);
+                ($this->isCorner($n) || $this->isEdge($n, self::DIR_UP))) {
+        /* Can't turn up into bottom corner */
+        if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
+              ($cur == "'" && $n != "'")) {
+        	return $this->walk($path, $r - 1, $c, self::DIR_UP);
+        }
       } elseif ($dir != self::DIR_UP && 
-                ($this->isCorner($this->grid[$r + 1][$c]) ||
-                 $this->isEdge($this->grid[$r + 1][$c], self::DIR_DOWN))) {
-        return $this->walk($path, $r + 1, $c, self::DIR_DOWN);
+                ($this->isCorner($s) || $this->isEdge($s, self::DIR_DOWN))) {
+  			/* Can't turn down into top corner */
+				if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
+              ($cur == "'" && $s != "'")) {
+        	return $this->walk($path, $r + 1, $c, self::DIR_DOWN);
+        }
       } elseif ($dir != self::DIR_LEFT &&
-                ($this->isCorner($this->grid[$r][$c + 1]) ||
-                 $this->isEdge($this->grid[$r][$c + 1], self::DIR_RIGHT))) {
+                ($this->isCorner($e) || $this->isEdge($e, self::DIR_RIGHT))) {
         return $this->walk($path, $r, $c + 1, self::DIR_RIGHT);
       } elseif ($dir != self::DIR_RIGHT &&
-                ($this->isCorner($this->grid[$r][$c - 1]) ||
-                 $this->isEdge($this->grid[$r][$c - 1], self::DIR_LEFT))) {
+                ($this->isCorner($w) || $this->isEdge($w, self::DIR_LEFT))) {
         return $this->walk($path, $r, $c - 1, self::DIR_LEFT);
       }
-    } elseif ($this->isMarker($this->grid[$r][$c])) {
+    } elseif ($this->isMarker($cur)) {
       /* We found a marker! Add it. */
       $path->addMarker($c, $r, Point::SMARKER);
       return;
