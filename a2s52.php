@@ -1,6 +1,6 @@
 <?php
 /*
- * ASCIIToSVG.php
+ * A2S_ASCIIToSVG.php
  * Copyright © 2012 Devon H. O'Dell <devon.odell@gmail.com>
  * All rights reserved.
  * 
@@ -45,14 +45,14 @@
  *
  */
 
-namespace org\dh0\a2s;
+#namespace org\dh0\a2s;
 
 /*
- * Scale is a singleton class that is instantiated to apply scale
+ * A2S_Scale is a singleton class that is instantiated to apply scale
  * transformations on the text -> canvas grid geometry. We could probably use
  * SVG's native scaling for this, but I'm not sure how yet.
  */
-class Scale {
+class A2S_Scale {
   private static $instance = null;
 
   public $xScale;
@@ -63,7 +63,7 @@ class Scale {
 
   public static function getInstance() {
     if (self::$instance == null) {
-      self::$instance = new Scale();
+      self::$instance = new A2S_Scale();
     }
 
     return self::$instance;
@@ -82,7 +82,7 @@ class Scale {
  * edges of lines and control points denote that a bezier curve should be
  * calculated for the corner represented by this point.
  */
-class Point {
+class A2S_Point {
   public $gridX;
   public $gridY;
 
@@ -99,9 +99,9 @@ class Point {
   public function __construct($x, $y) {
     $this->flags = 0;
 
-    $s = Scale::getInstance();
-    $this->x = ($x * $s->xScale) + ($s->xScale / 2);
-    $this->y = ($y * $s->yScale) + ($s->yScale / 2);
+    $s = A2S_Scale::getInstance();
+    $this->x = $x * $s->xScale;
+    $this->y = $y * $s->yScale;
 
     $this->gridX = $x;
     $this->gridY = $y;
@@ -112,7 +112,7 @@ class Point {
  * Groups objects together and sets common properties for the objects in the
  * group.
  */
-class SVGGroup {
+class A2S_SVGGroup {
   private $groups;
   private $curGroup;
   private $groupStack;
@@ -180,7 +180,7 @@ class SVGGroup {
 /*
  * The Path class represents lines and polygons.
  */
-class SVGPath {
+class A2S_SVGPath {
   private $options;
   private $points;
   private $flags;
@@ -195,57 +195,8 @@ class SVGPath {
     $this->flags = 0;
   }
 
-  /*
-   * Making sure that we always started at the top left coordinate 
-   * makes so many things so much easier. First, find the lowest Y
-   * position. Then, of all matching Y positions, find the lowest X
-   * position. This is the top left.
-   *
-   * As far as the points are considered, they're definitely on the
-   * top somewhere, but not necessarily the most left. This could
-   * happen if there was a corner connector in the top edge (perhaps
-   * for a line to connect to). Since we couldn't turn right there,
-   * we have to try now.
-   *
-   * This should only be called when we close a polygon.
-   */
-  public function orderPoints() {
-    $pPoints = count($this->points);
-
-    $minY = $this->points[0]->y;
-    $minX = $this->points[0]->x;
-    $minIdx = 0;
-    for ($i = 1; $i < $pPoints; $i++) {
-      if ($this->points[$i]->y <= $minY) {
-        $minY = $this->points[$i]->y;
-
-        if ($this->points[$i]->x < $minX) {
-          $minX = $this->points[$i]->x;
-          $minIdx = $i;
-        }
-      }
-    }
-
-    /*
-     * If our top left isn't at the 0th index, it is at the end. If
-     * there are bits after it, we need to cut those and put them at
-     * the front.
-     */
-    if ($minIdx != 0) {
-      $startPoints = array_splice($this->points, $minIdx);
-      $this->points = array_merge($startPoints, $this->points);
-    }
-  }
-
-  /*
-   * Useful for recursive walkers when speculatively trying a direction.
-   */
-  public function popPoint() {
-    array_pop($this->points);
-  }
-
   public function addPoint($x, $y) {
-    $p = new Point($x, $y);
+    $p = new A2S_Point($x, $y);
 
     /*
      * If we attempt to add our original point back to the path, the polygon
@@ -267,10 +218,17 @@ class SVGPath {
       }
     }
 
-    $p->flags |= Point::POINT;
+    $p->flags |= A2S_Point::POINT;
     $this->points[] = $p;
 
     return false;
+  }
+
+  /*
+   * Useful for recursive walkers when speculatively trying a direction.
+   */
+  public function popPoint() {
+    array_pop($this->points);
   }
 
   /*
@@ -278,8 +236,8 @@ class SVGPath {
    * quadratic Bezier curve.
    */
   public function addControlPoint($x, $y) {
-    $p = new Point($x, $y);
-    $p->flags |= Point::CONTROL;
+    $p = new A2S_Point($x, $y);
+    $p->flags |= A2S_Point::CONTROL;
 
     if ($this->points[0]->x == $p->x && $this->points[0]->y == $p->y) {
       $this->flags |= self::CLOSED;
@@ -309,7 +267,7 @@ class SVGPath {
    * parser works, we may have to use an inverted representation.
    */
   public function addMarker($x, $y, $t) {
-    $p = new Point($x, $y);
+    $p = new A2S_Point($x, $y);
     $p->flags |= $t;
     $this->points[] = $p;
   }
@@ -608,7 +566,7 @@ class SVGPath {
      * automatically if it is a closed shape. If we have a control point, we
      * have to go ahead and draw the curve.
      */
-    if (($startPoint->flags & Point::CONTROL)) {
+    if (($startPoint->flags & A2S_Point::CONTROL)) {
       $cX = $startPoint->x;
       $cY = $startPoint->y;
       $sX = $startPoint->x;
@@ -631,7 +589,7 @@ class SVGPath {
        * the curves only works if the shapes are drawn in a clockwise
        * manner.
        */
-      if (($p->flags & Point::CONTROL)) {
+      if (($p->flags & A2S_Point::CONTROL)) {
         /* Our control point is always the original corner */
         $cX = $p->x;
         $cY = $p->y;
@@ -697,15 +655,15 @@ class SVGPath {
     $id = self::$id++;
 
     /* Add markers if necessary. */
-    if ($startPoint->flags & Point::SMARKER) {
+    if ($startPoint->flags & A2S_Point::SMARKER) {
       $this->options["marker-start"] = "url(#Pointer)";
-    } elseif ($startPoint->flags & Point::IMARKER) {
+    } elseif ($startPoint->flags & A2S_Point::IMARKER) {
       $this->options["marker-start"] = "url(#iPointer)";
     }
 
-    if ($endPoint->flags & Point::SMARKER) {
+    if ($endPoint->flags & A2S_Point::SMARKER) {
       $this->options["marker-end"] = "url(#Pointer)";
-    } elseif ($endPoint->flags & Point::IMARKER) {
+    } elseif ($endPoint->flags & A2S_Point::IMARKER) {
       $this->options["marker-end"] = "url(#iPointer)";
     }
 
@@ -732,13 +690,13 @@ class SVGPath {
 /*
  * Nothing really special here. Container for representing text bits.
  */
-class SVGText {
+class A2S_SVGText {
   private $options;
   private $string;
   private $point;
 
   public function __construct($x, $y) {
-    $this->point = new Point($x, $y);
+    $this->point = new A2S_Point($x, $y);
     $this->options = array();
   }
 
@@ -770,7 +728,7 @@ class SVGText {
  * Main class for parsing ASCII and constructing the SVG output based on the
  * above classes.
  */
-class ASCIIToSVG {
+class A2S_ASCIIToSVG {
   private $rawData;
   private $grid;
 
@@ -792,18 +750,18 @@ class ASCIIToSVG {
     /*
      * Parse out any command references. These need to be at the bottom of the
      * diagram due to the way they're removed. Format is:
-     * [identifier] optional-colon optional-spaces ({json-blob})\n
+     * [(decimal-number)] optional-colon optional-spaces ({json-blob})\n
      *
      * The JSON blob may not contain objects as values or the regex will break.
      */
     $this->commands = array();
-    preg_match_all('/^\[(^\]+)\]:?\s+({[^}]+?})$/ims', $data, $matches);
+    preg_match_all('/^\[(\d+)\]:?\s+({[^}]+?})$/ims', $data, $matches);
     $bound = count($matches[1]);
     for ($i = 0; $i < $bound; $i++) {
       $this->commands[$matches[1][$i]] = $matches[2][$i];
     }
 
-    $data = preg_replace('/^\[(^\]+)\](:?)\s+.*/ims', '', $data);
+    $data = preg_replace('/^\[(\d+)\](:?)\s+.*/ims', '', $data);
 
     /*
      * Treat our ASCII field as a grid and store each character as a point in
@@ -819,7 +777,7 @@ class ASCIIToSVG {
       $this->grid[$k] = str_split($line);
     }
 
-    $this->svgObjects = new SVGGroup();
+    $this->svgObjects = new A2S_SVGGroup();
   }
 
   /*
@@ -827,7 +785,7 @@ class ASCIIToSVG {
    * the default scale of one grid space on the X and Y axes.
    */
   public function setDimensionScale($x, $y) {
-    $o = Scale::getInstance();
+    $o = A2S_Scale::getInstance();
     $o->setScale($x, $y);
   }
 
@@ -837,7 +795,7 @@ class ASCIIToSVG {
 
   /* Render out what we've done!  */
   public function render() {
-    $o = Scale::getInstance();
+    $o = A2S_Scale::getInstance();
 
     /* Figure out how wide we need to make the canvas */
     $canvasWidth = 0;
@@ -859,7 +817,7 @@ class ASCIIToSVG {
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Created with ASCIIToSVG (http://9vx.org/~dho/a2s/) -->
+<!-- Created with A2S_ASCIIToSVG (http://9vx.org/~dho/a2s/) -->
 <svg width="{$canvasWidth}px" height="{$canvasHeight}px" version="1.1"
   xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
@@ -936,7 +894,7 @@ SVG;
     foreach ($this->grid as $row => $line) {
       foreach ($line as $col => $char) {
         if ($this->isCorner($char)) {
-          $path = new SVGPath();
+          $path = new A2S_SVGPath();
 
           /* Slanted corners mean curved corners */
           if ($char == "\\" || $char == '/' || $char == '.' || $char == "'") {
@@ -953,8 +911,6 @@ SVG;
         
           /* We only care about closed polygons */
           if ($path->isClosed()) {
-            $path->orderPoints();
-
             $skip = false;
             /*
              * The walking code can find the same box from a different edge:
@@ -1050,7 +1006,7 @@ SVG;
         /* This gets set if we find a line-start here. */
         $dir = false;
 
-        $line = new SVGPath();
+        $line = new A2S_SVGPath();
 
         /*
          * Since the column count isn't uniform, don't attempt to handle any
@@ -1068,25 +1024,25 @@ SVG;
          */
         case '<':
           if ($this->isEdge($this->getChar($r, $c + 1), self::DIR_RIGHT)) {
-            $line->addMarker($c, $r, Point::IMARKER);
+            $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_RIGHT;
           }
           break;
         case '^':
           if ($this->isEdge($this->getChar($r + 1, $c), self::DIR_DOWN)) {
-            $line->addMarker($c, $r, Point::IMARKER);
+            $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_DOWN;
           }
           break;
         case '>':
           if ($this->isEdge($this->getChar($r, $c - 1), self::DIR_LEFT)) {
-            $line->addMarker($c, $r, Point::IMARKER);
+            $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_LEFT;
           }
           break;
         case 'v':
           if ($this->isEdge($this->getChar($r - 1, $c), self::DIR_UP)) {
-            $line->addMarker($c, $r, Point::IMARKER);
+            $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_UP;
           }
           break;
@@ -1226,7 +1182,7 @@ SVG;
    * color calculation magic.
    */
   private function parseText() {
-    $o = Scale::getInstance();
+    $o = A2S_Scale::getInstance();
 
     /*
      * The style options deserve some comments. The monospace and font-size
@@ -1236,11 +1192,10 @@ SVG;
      * N.B. This might change with different scales. I kind of feel like this
      * is a bug waiting to be filed, but whatever.
      */
-    $fSize = 0.9*$o->yScale;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
-        "font-family:monospace;font-size:{$fSize}px");
+        "font-family:monospace;font-size:{$o->yScale}px");
 
     /*
      * Text gets the same scanning treatment as boxes. We do left-to-right
@@ -1254,7 +1209,7 @@ SVG;
       for ($i = 0; $i < $cols; $i++) {
         if ($this->grid[$row][$i] != ' ') {
           /* More magic numbers that probably need research. */
-          $t = new SVGText($i - .6, $row + 0.3);
+          $t = new A2S_SVGText($i - .6, $row + 0.3);
 
           /* Time to figure out which (if any) box we live inside */
           $tP = $t->getPoint();
@@ -1387,7 +1342,7 @@ SVG;
       }
     } elseif ($this->isMarker($cur)) {
       /* We found a marker! Add it. */
-      $path->addMarker($c, $r, Point::SMARKER);
+      $path->addMarker($c, $r, A2S_Point::SMARKER);
       return;
     } else {
       /*
@@ -1665,7 +1620,7 @@ SVG;
     $ref = '';
     if ($this->getChar($sY, $sX++) == '[') {
       $char = $this->getChar($sY, $sX++);
-      while ($char != ']') {
+      while (is_numeric($char)) {
         $ref .= $char;
         $char = $this->getChar($sY, $sX++);
       }
@@ -1677,15 +1632,9 @@ SVG;
 
         $sX = $points[0]->gridX + 1;
         $sY = $points[0]->gridY + 1;
-
-        if (!isset($this->commands[$ref]['a2s:delref'])) {
-          $this->grid[$sY][$sX] = ' ';
-          $this->grid[$sY][$sX + strlen($ref) + 1] = ' ';
-        } else {
-          $len = strlen($ref) + 2;
-          for ($i = 0; $i < $len; $i++) {
-            $this->grid[$sY][$sX + $i] = ' ';
-          }
+        $len = strlen($ref) + 2;
+        for ($i = 0; $i < $len; $i++) {
+          $this->grid[$sY][$sX + $i] = ' ';
         }
       }
     }
