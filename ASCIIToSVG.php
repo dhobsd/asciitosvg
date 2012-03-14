@@ -630,7 +630,7 @@ class SVGPath {
           }
 
           $eX = $p->x;
-          if ($nP->y < $p->y) {
+          if ($nP->y <= $p->y) {
             $eY = $p->y - 10;
           } else {
             $eY = $p->y + 10;
@@ -1363,9 +1363,11 @@ SVG;
     }
 
     /* Traverse the edge in whatever direction we are going. */
-    while ($this->isEdge($this->getChar($r, $c), $dir)) {
+    $cur = $this->getChar($r, $c);
+    while ($this->isEdge($cur, $dir)) {
       $r += $rInc;
       $c += $cInc;
+      $cur = $this->getChar($r, $c);
     }
 
     /* We 'key' our location by catting r and c together */
@@ -1378,12 +1380,12 @@ SVG;
      * When we run into a corner, we have to make a somewhat complicated
      * decision about which direction to turn.
      */
-    if ($this->isCorner($this->getChar($r, $c))) {
+    if ($this->isCorner($cur)) {
       if (!isset($bucket[$key])) {
         $bucket[$key] = 0;
       }
 
-      switch ($this->getChar($r, $c)) {
+      switch ($cur) {
       case '+':
         $e = $path->addPoint($c, $r);
         break;
@@ -1400,6 +1402,14 @@ SVG;
         return;
       }
 
+      /*
+      * Special case: if we're looking for our first turn and we can't make it
+      * due to incompatible corners, keep looking, but don't adjust our call
+      * depth so that we can continue to make progress.
+      */
+      if ($d == 1 && $cur == '.' && $this->getChar($r + 1, $c) == '.') {
+        return $this->wallFollow($path, $r, $c + 1, $dir, $bucket, 0);
+      }
 
       /*
        * We need to make a decision here on where to turn. We may have multiple
@@ -1407,11 +1417,19 @@ SVG;
        * object. Always try turning right first.
        */
       $newDir = false;
+      $n = $this->getChar($r - 1, $c);
+      $s = $this->getChar($r + 1, $c);
+      $e = $this->getChar($r, $c + 1);
+      $w = $this->getChar($r, $c - 1);
+
       if ($dir == self::DIR_RIGHT) {
         if (!($bucket[$key] & self::DIR_DOWN) &&
-            ($this->isEdge($this->getChar($r + 1, $c), self::DIR_DOWN) ||
-             $this->isCorner($this->getChar($r + 1, $c)))) {
-          $newDir = self::DIR_DOWN;
+            ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s))) {
+          /* We can't turn into another top edge. */
+          if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
+              ($cur == "'" && $s != "'")) {
+            $newDir = self::DIR_DOWN;
+          }
         } else {
           /* There is no right hand turn for us; this isn't a valid start */
           if ($d == 1) {
@@ -1420,20 +1438,21 @@ SVG;
         }
       } elseif ($dir == self::DIR_DOWN) {
         if (!($bucket[$key] & self::DIR_LEFT) &&
-           ($this->isEdge($this->getChar($r, $c - 1), self::DIR_LEFT) ||
-            $this->isCorner($this->getChar($r, $c - 1)))) {
+            ($this->isEdge($w, self::DIR_LEFT) || $this->isCorner($w))) {
           $newDir == self::DIR_LEFT;
         } 
       } elseif ($dir == self::DIR_LEFT) {
         if (!($bucket[$key] & self::DIR_UP) &&
-            ($this->isEdge($this->getChar($r - 1, $c), self::DIR_UP) ||
-             $this->isCorner($this->getChar($r - 1, $c)))) {
-          $newDir = self::DIR_UP;
+            ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n))) {
+          /* We can't turn into another bottom edge. */
+          if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
+              ($cur == "'" && $n != "'")) {
+            $newDir = self::DIR_UP;
+          }
         } 
       } elseif ($dir == self::DIR_UP) {
         if (!($bucket[$key] & self::DIR_RIGHT) &&
-            ($this->isEdge($this->getChar($r, $c + 1), self::DIR_RIGHT) ||
-             $this->isCorner($this->getChar($r, $c + 1)))) {
+            ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e))) {
           $newDir = self::DIR_RIGHT;
         } 
       }
@@ -1465,8 +1484,7 @@ SVG;
        * "correct" one for this object.
        */
       if ($dir != self::DIR_RIGHT && !($bucket[$key] & self::DIR_LEFT) &&
-          ($this->isEdge($this->getChar($r, $c - 1), self::DIR_LEFT) ||
-           $this->isCorner($this->getChar($r, $c - 1)))) {
+          ($this->isEdge($w, self::DIR_LEFT) || $this->isCorner($w))) {
         $bucket[$key] |= self::DIR_LEFT;
         $this->wallFollow($path, $r, $c - 1, self::DIR_LEFT, $bucket, $d);
         if ($path->isClosed()) {
@@ -1474,8 +1492,7 @@ SVG;
         }
       } 
       if ($dir != self::DIR_LEFT && !($bucket[$key] & self::DIR_RIGHT) &&
-          ($this->isEdge($this->getChar($r, $c + 1), self::DIR_RIGHT) ||
-           $this->isCorner($this->getChar($r, $c + 1)))) {
+          ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e))) {
         $bucket[$key] |= self::DIR_RIGHT;
         $this->wallFollow($path, $r, $c + 1, self::DIR_RIGHT, $bucket, $d);
         if ($path->isClosed()) {
@@ -1483,21 +1500,27 @@ SVG;
         }
       } 
       if ($dir != self::DIR_DOWN && !($bucket[$key] & self::DIR_UP) &&
-          ($this->isEdge($this->getChar($r - 1, $c), self::DIR_UP) ||
-           $this->isCorner($this->getChar($r - 1, $c)))) {
-        $bucket[$key] |= self::DIR_UP;
-        $this->wallFollow($path, $r - 1, $c, self::DIR_UP, $bucket, $d);
-        if ($path->isClosed()) {
-          return;
+          ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n))) {
+          if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
+              ($cur == "'" && $n != "'")) {
+          /* We can't turn into another bottom edge. */
+          $bucket[$key] |= self::DIR_UP;
+          $this->wallFollow($path, $r - 1, $c, self::DIR_UP, $bucket, $d);
+          if ($path->isClosed()) {
+            return;
+          }
         }
       } 
       if ($dir != self::DIR_UP && !($bucket[$key] & self::DIR_DOWN) &&
-          ($this->isEdge($this->getChar($r + 1, $c), self::DIR_DOWN) ||
-           $this->isCorner($this->getChar($r + 1, $c)))) {
-        $bucket[$key] |= self::DIR_DOWN;
-        $this->wallFollow($path, $r + 1, $c, self::DIR_DOWN, $bucket, $d);
-        if ($path->isClosed()) {
-          return;
+          ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s))) {
+          if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
+              ($cur == "'" && $s != "'")) {
+          /* We can't turn into another top edge. */
+          $bucket[$key] |= self::DIR_DOWN;
+          $this->wallFollow($path, $r + 1, $c, self::DIR_DOWN, $bucket, $d);
+          if ($path->isClosed()) {
+            return;
+          }
         }
       }
 
