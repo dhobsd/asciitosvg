@@ -744,6 +744,8 @@ class ASCIIToSVG {
   public function __construct($data) {
     /* For debugging purposes */
     $this->rawData = $data;
+    
+    $this->clearCorners = array();
 
     /*
      * Parse out any command references. These need to be at the bottom of the
