@@ -163,13 +163,16 @@ Let me reiterate that the references *must* be defined at the *bottom* of
 the input. An example:
 
     .-------------.  .--------------.
-    |[1]Red Box   |  |[2]Blue Box   |
+    |[Red Box]    |  |[Blue Box]    |
     '-------------'  '--------------'
 
-    [1]: {"fill":"#aa4444"}
-    [2]: {"fill":"#ccccff"}
+    [Red Box]: {"fill":"#aa4444"}
+    [Blue Box]: {"fill":"#ccccff"}
 
-(This time we curved all the edges!)
+(This time we curved all the edges!) The text of a reference is left in
+the polygon, making it useful as an object title. You can have the reference
+removed by adding an option `a2s:delref` to the references. Any value will
+suffice to have the reference fully removed from the polygon.
 
 Text appearing within a stylized box automatically tries to fix the color
 contrast if the black text would be too dark on the background. The
@@ -229,3 +232,4 @@ If there's nothing here, you're looking at this README post-markdown-ified.
 [4]: http://search.cpan.org/dist/App-Asciio/lib/App/Asciio.pm "App::Asciio"
 [5]: http://www.w3.org/TR/SVG/paths.html "SVG Paths"
 [6]: http://www.asciiflow.com/ "Asciiflow"
+

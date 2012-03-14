@@ -195,6 +195,55 @@ class SVGPath {
     $this->flags = 0;
   }
 
+  /*
+   * Making sure that we always started at the top left coordinate 
+   * makes so many things so much easier. First, find the lowest Y
+   * position. Then, of all matching Y positions, find the lowest X
+   * position. This is the top left.
+   *
+   * As far as the points are considered, they're definitely on the
+   * top somewhere, but not necessarily the most left. This could
+   * happen if there was a corner connector in the top edge (perhaps
+   * for a line to connect to). Since we couldn't turn right there,
+   * we have to try now.
+   *
+   * This should only be called when we close a polygon.
+   */
+  public function orderPoints() {
+    $pPoints = count($this->points);
+
+    $minY = $this->points[0]->y;
+    $minX = $this->points[0]->x;
+    $minIdx = 0;
+    for ($i = 1; $i < $pPoints; $i++) {
+      if ($this->points[$i]->y <= $minY) {
+        $minY = $this->points[$i]->y;
+
+        if ($this->points[$i]->x < $minX) {
+          $minX = $this->points[$i]->x;
+          $minIdx = $i;
+        }
+      }
+    }
+
+    /*
+     * If our top left isn't at the 0th index, it is at the end. If
+     * there are bits after it, we need to cut those and put them at
+     * the front.
+     */
+    if ($minIdx != 0) {
+      $startPoints = array_splice($this->points, $minIdx);
+      $this->points = array_merge($startPoints, $this->points);
+    }
+  }
+
+  /*
+   * Useful for recursive walkers when speculatively trying a direction.
+   */
+  public function popPoint() {
+    array_pop($this->points);
+  }
+
   public function addPoint($x, $y) {
     $p = new Point($x, $y);
 
@@ -222,13 +271,6 @@ class SVGPath {
     $this->points[] = $p;
 
     return false;
-  }
-
-  /*
-   * Useful for recursive walkers when speculatively trying a direction.
-   */
-  public function popPoint() {
-    array_pop($this->points);
   }
 
   /*
@@ -750,18 +792,18 @@ class ASCIIToSVG {
     /*
      * Parse out any command references. These need to be at the bottom of the
      * diagram due to the way they're removed. Format is:
-     * [(decimal-number)] optional-colon optional-spaces ({json-blob})\n
+     * [identifier] optional-colon optional-spaces ({json-blob})\n
      *
      * The JSON blob may not contain objects as values or the regex will break.
      */
     $this->commands = array();
-    preg_match_all('/^\[(\d+)\]:?\s+({[^}]+?})$/ims', $data, $matches);
+    preg_match_all('/^\[(^\]+)\]:?\s+({[^}]+?})$/ims', $data, $matches);
     $bound = count($matches[1]);
     for ($i = 0; $i < $bound; $i++) {
       $this->commands[$matches[1][$i]] = $matches[2][$i];
     }
 
-    $data = preg_replace('/^\[(\d+)\](:?)\s+.*/ims', '', $data);
+    $data = preg_replace('/^\[(^\]+)\](:?)\s+.*/ims', '', $data);
 
     /*
      * Treat our ASCII field as a grid and store each character as a point in
@@ -911,6 +953,8 @@ SVG;
         
           /* We only care about closed polygons */
           if ($path->isClosed()) {
+            $path->orderPoints();
+
             $skip = false;
             /*
              * The walking code can find the same box from a different edge:
@@ -1192,10 +1236,11 @@ SVG;
      * N.B. This might change with different scales. I kind of feel like this
      * is a bug waiting to be filed, but whatever.
      */
+    $fSize = 0.9*$o->yScale;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
-        "font-family:monospace;font-size:{$o->yScale}px");
+        "font-family:monospace;font-size:{$fSize}px");
 
     /*
      * Text gets the same scanning treatment as boxes. We do left-to-right
@@ -1620,7 +1665,7 @@ SVG;
     $ref = '';
     if ($this->getChar($sY, $sX++) == '[') {
       $char = $this->getChar($sY, $sX++);
-      while (is_numeric($char)) {
+      while ($char != ']') {
         $ref .= $char;
         $char = $this->getChar($sY, $sX++);
       }
@@ -1632,9 +1677,15 @@ SVG;
 
         $sX = $points[0]->gridX + 1;
         $sY = $points[0]->gridY + 1;
-        $len = strlen($ref) + 2;
-        for ($i = 0; $i < $len; $i++) {
-          $this->grid[$sY][$sX + $i] = ' ';
+
+        if (!isset($this->commands[$ref]['a2s:delref'])) {
+          $this->grid[$sY][$sX] = ' ';
+          $this->grid[$sY][$sX + strlen($ref) + 1] = ' ';
+        } else {
+          $len = strlen($ref) + 2;
+          for ($i = 0; $i < $len; $i++) {
+            $this->grid[$sY][$sX + $i] = ' ';
+          }
         }
       }
     }
