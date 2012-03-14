@@ -45,6 +45,8 @@
  *
  */
 
+namespace org\dh0\a2s;
+
 /*
  * Scale is a singleton class that is instantiated to apply scale
  * transformations on the text -> canvas grid geometry. We could probably use
@@ -1320,14 +1322,14 @@ SVG;
         /* Can't turn up into bottom corner */
         if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
               ($cur == "'" && $n != "'")) {
-        	return $this->walk($path, $r - 1, $c, self::DIR_UP);
+          return $this->walk($path, $r - 1, $c, self::DIR_UP);
         }
       } elseif ($dir != self::DIR_UP && 
                 ($this->isCorner($s) || $this->isEdge($s, self::DIR_DOWN))) {
-  			/* Can't turn down into top corner */
-				if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
+        /* Can't turn down into top corner */
+        if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
               ($cur == "'" && $s != "'")) {
-        	return $this->walk($path, $r + 1, $c, self::DIR_DOWN);
+          return $this->walk($path, $r + 1, $c, self::DIR_DOWN);
         }
       } elseif ($dir != self::DIR_LEFT &&
                 ($this->isCorner($e) || $this->isEdge($e, self::DIR_RIGHT))) {
