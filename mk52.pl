@@ -8,7 +8,7 @@ local $/ = undef;
 my $src = <>;
 
 # Comment out namespace specification
-$src =~ s/^namespace/#namespace/g;
+$src =~ s/^namespace/#namespace/smg;
 
 
 # Find all class names, but ignore "class" in comments

@@ -45,7 +45,7 @@
  *
  */
 
-namespace org\dh0\a2s;
+#namespace org\dh0\a2s;
 
 /*
  * A2S_Scale is a singleton class that is instantiated to apply scale
