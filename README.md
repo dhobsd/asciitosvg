@@ -57,9 +57,24 @@ is more extensible than ditaa, and I'm enjoying it more.
 
 ### Command Line ############################################################
 
-Currently, there is no CLI consumer for ASCIIToSVG. This is a rather trivial
-task, so I imagine I'll write one at some point soon, but currently you'll
-have to write a quick script around the API.
+A command line utility exists to convert the ASCII file to SVG. You can put
+this somewhere inside your `$PATH` and set its permissions to +x. Windows
+users will have to make their own batch file to run this or remove the first
+line. Usage:
+
+    Usage: a2s [-i[-|filename]] [-o[-|filename]] [-sx-scale,y-scale]
+      -h: This usage screen.
+      -i: Path to input text file. If unspecified, or set to "-" (hyphen),
+          stdin is used.
+      -o: Path to output SVG file. If unspecified or set to "-" (hyphen),
+          stdout is used.
+      -s: Grid scale in pixels. If unspecified, each grid unit on the X
+          axis is set to 9 pixels; each grid unit on the Y axis is 16 pixels.
+
+Note that this uses PHP's `getopt` which handles short options stupidly. You
+need to put the actual argument right next to the flag; no space. For
+example: `a2s -i- -oout.svg -s10,17` would be a valid command line
+invocation for this utility.
 
 ### Class API ###############################################################
 
