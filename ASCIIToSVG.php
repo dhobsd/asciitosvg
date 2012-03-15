@@ -556,11 +556,11 @@ class SVGPath {
       case 'storage':
         /* SVG path command for a storage cylinder symbol */
         $cmds = array ( array ('M', 0, 100),
-                        array ('A', 50, 25, 0, 0, 0,100, 100),
+                        array ('A', 50, 15, 0, 0, 0,100, 100),
                         array ('V', 20),
-                        array ('A', 50, 25, 0, 0, 0, 0, 20),
-                        array ('A', 50, 25, 0, 0, 0, 100, 20),
-                        array ('A', 50, 25, 0, 0, 0, 0, 20),
+                        array ('A', 50, 15, 0, 0, 0, 0, 20),
+                        array ('A', 50, 15, 0, 0, 0, 100, 20),
+                        array ('A', 50, 15, 0, 0, 0, 0, 20),
                         array ('Z'),
                       );
         $oW = 100;
@@ -577,6 +577,41 @@ class SVGPath {
                       );
         $oW = 100;
         $oH = 100;
+        break;
+
+      case 'cloud':
+        $cmds = array ( array ('M', 28.78066, 10.32924, ),
+                        array ('C', 39.97551, -3.9887199999999, 50.94711, -1.60258, 67.36249, 8.90619),
+                        array ('C', 85.79048, -0.090190000000007, 104.95807, 20.75976, 92.90632, 41.28056),
+                        array ('C', 108.83237, 58.28354, 93.41511, 86.19772, 80.66657, 81.12594),
+                        array ('C', 87.32655, 91.06902, 67.89348, 110.16904, 48.4707, 92.15458),
+                        array ('C', 22.2647, 109.17234, 13.76248, 94.0907, 10.95319, 79.34712),
+                        array ('C', -9.15339, 73.29619, 4.43736, 38.52779, 9.63664, 33.45378),
+                        array ('C', -5.98431, 17.49043, 16.27402, -0.49431000000004, 28.78066, 10.32924),
+                        array ('Z'),
+                      );
+        $oW = 100;
+        $oH = 100;
+        break;
+
+      case 'computer':
+        $cmds = array ( array ('M', 1.6611296, 6.1461794, 1.6611296, 63.732004),
+                        array ('C', 1.6556215, 66.359883, 1.218959, 69.332686, 4.7694467, 69.115768),
+                        array ('L', 41.222591, 69.115768),
+                        array ('C', 44.97765, 76.223313, 23.757179, 73.853318, 19.074197, 73.975637),
+                        array ('C', 18.724881, 91.87835, 29.914236, 97.789572, 48.16884, 97.192826),
+                        array ('C', 66.705201, 97.84313, 78.902187, 92.091698, 78.116048, 74.138197),
+                        array ('C', 74.004692, 74.317066, 51.009336, 75.995085, 54.256956, 68.845214),
+                        array ('L', 95.486157, 68.845214),
+                        array ('C', 98.216114, 68.813012, 98.94927, 67.28321, 98.734899, 65.042762),
+                        array ('L', 98.734899, 6.9767442),
+                        array ('C', 98.692053, 5.2755274, 97.041962, 3.0116197, 94.341979, 2.583824),
+                        array ('L', 5.2602436, 2.583824),
+                        array ('C', 3.2046817, 2.6301329, 1.5246705, 3.1771759, 1.6611296, 6.1461794),
+                        array ('Z'),
+                      );
+        $oH = 100;
+        $oW = 100;
         break;
       }
 
@@ -927,7 +962,6 @@ SVG;
   private function parseBoxes() {
     /* Set up our box group  */
     $this->svgObjects->pushGroup('boxes');
-    $this->svgObjects->setOption('filter', 'url(#dsFilter)');
     $this->svgObjects->setOption('stroke', 'black');
     $this->svgObjects->setOption('stroke-width', '2');
     $this->svgObjects->setOption('fill', 'none');
@@ -999,6 +1033,7 @@ SVG;
 
             if ($skip == false) {
               /* Search for any references for styling this polygon; add it */
+              $path->setOption('filter', 'url(#dsFilter)');
               $this->findCommands($path);
               $this->svgObjects->addObject($path);
             }
@@ -1107,8 +1142,10 @@ SVG;
          * the southern / northern neighbor to be part of a separate
          * horizontal line.
          */
-        case '|':
         case ':':
+          $line->setOption('stroke-dasharray', '5 5');
+          /* FALLTHROUGH */
+        case '|':
           $n = $this->getChar($r-1, $c);
           $s = $this->getChar($r+1, $c);
           if (($s == '|' || $s == ':' || $this->isCorner($s)) &&
@@ -1126,8 +1163,10 @@ SVG;
          * vertical case are still accurate to visualize this case; just
          * mentally turn them 90 degrees clockwise.
          */
-        case '-':
         case '=':
+          $line->setOption('stroke-dasharray', '5 5');
+          /* FALLTHROUGH */
+        case '-':
           $w = $this->getChar($r, $c-1);
           $e = $this->getChar($r, $c+1);
           if (($w == '-' || $w == '=' || $this->isCorner($w)) &&
@@ -1236,7 +1275,7 @@ SVG;
      * N.B. This might change with different scales. I kind of feel like this
      * is a bug waiting to be filed, but whatever.
      */
-    $fSize = 0.9*$o->yScale;
+    $fSize = 0.95*$o->yScale;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
@@ -1334,6 +1373,10 @@ SVG;
     /* Follow the edge for as long as we can */
     $cur = $this->getChar($r, $c);
     while ($this->isEdge($cur, $dir)) {
+      if ($cur == ':' || $cur == '=') {
+        $path->setOption('stroke-dasharray', '5 5');
+      }
+
       $c += $cInc;
       $r += $rInc;
       $cur = $this->getChar($r, $c);
@@ -1670,14 +1713,22 @@ SVG;
         $sX = $points[0]->gridX + 1;
         $sY = $points[0]->gridY + 1;
 
-        if (!isset($this->commands[$ref]['a2s:delref'])) {
+        if (!isset($this->commands[$ref]['a2s:delref']) &&
+            !isset($this->commands[$ref]['a2s:label'])) {
           $this->grid[$sY][$sX] = ' ';
           $this->grid[$sY][$sX + strlen($ref) + 1] = ' ';
         } else {
+          $label = $this->commands[$ref]['a2s:label'];
+
           unset($this->commands[$ref]['a2s:delref']);
+          unset($this->commands[$ref]['a2s:label']);
           $len = strlen($ref) + 2;
           for ($i = 0; $i < $len; $i++) {
-            $this->grid[$sY][$sX + $i] = ' ';
+            if (strlen($label) > $i) {
+              $this->grid[$sY][$sX + $i] = substr($label, $i, 1);
+            } else {
+              $this->grid[$sY][$sX + $i] = ' ';
+            }
           }
         }
 
@@ -1704,34 +1755,34 @@ SVG;
 
   private function isBoxEdge($char, $dir = null) {
     if ($dir == null) {
-      return $char === '-' || $char === '|' || char === ':' || $char === '=' || $char === '*' || $char == '+';
+      return $char == '-' || $char == '|' || char == ':' || $char == '=' || $char == '*' || $char == '+';
     } elseif ($dir == self::DIR_UP || $dir == self::DIR_DOWN) {
-      return $char === '|' || $char === ':' || $char === '*' || $char == '+';
+      return $char == '|' || $char == ':' || $char == '*' || $char == '+';
     } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {
-      return $char === '-' || $char === '=' || $char === '*' || $char == '+';
+      return $char == '-' || $char == '=' || $char == '*' || $char == '+';
     }
   }
 
   private function isEdge($char, $dir = null) {
     if ($dir == null) {
-      return $char === '-' || $char === '|' || char === ':' || $char === '=' || $char === '*';
+      return $char == '-' || $char == '|' || $char == ':' || $char == '=' || $char == '*';
     } elseif ($dir == self::DIR_UP || $dir == self::DIR_DOWN) {
-      return $char === '|' || $char === ':' || $char === '*';
+      return $char == '|' || $char == ':' || $char == '*';
     } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {
-      return $char === '-' || $char === '=' || $char === '*';
+      return $char == '-' || $char == '=' || $char == '*';
     }
   }
 
   private function isBoxCorner($char) {
-    return $char === '.' || $char === "'";
+    return $char == '.' || $char == "'";
   }
 
   private function isCorner($char) {
-    return $char === '+' || $char === "\\" || $char === '/' || $char === '.' || $char === "'";
+    return $char == '+' || $char == "\\" || $char == '/' || $char == '.' || $char == "'";
   }
 
   private function isMarker($char) {
-    return $char === 'v' || $char === '^' || $char === '<' || $char === '>';
+    return $char == 'v' || $char == '^' || $char == '<' || $char == '>';
   }
 }
 

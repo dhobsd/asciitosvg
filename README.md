@@ -112,8 +112,8 @@ the following characters:
  * `|` or `:`: Vertical line (pipe, colon)
  * `*`: Line of ambiguous direction (asterisk)
 
-Eventually, the `:` and `=` edges will support dashing lines, unless I come
-up with a better way to stylize lines.
+The existence of a `:` or `=` edge on a line causes that line to be
+rendered as a dashed line.
 
 To draw a box or turn a line, you need to specify corners. The following
 characters are valid corner characters:
@@ -168,17 +168,18 @@ the input. An example:
     [Red Box]: {"fill":"#aa4444"}
     [Blue Box]: {"fill":"#ccccff"}
 
-The text of a reference is left in the polygon, making it useful as an
-object title. You can have the reference removed by adding an option
-`a2s:delref` to the references. Any value will suffice to have the
-reference fully removed from the polygon.
-
 Text appearing within a stylized box automatically tries to fix the color
 contrast if the black text would be too dark on the background. The
 reference commands can take any valid SVG properties / settings for a
 [path element][5]. The commands are specified in JSON form, one per line.
 Reference commands do not accept nested JSON objects -- don't try to
 place additional curly braces inside!
+
+The text of a reference is left in the polygon, making it useful as an
+object title. You can have the reference removed by adding an option
+`a2s:delref` to the options JSON object. Any value will suffice to have
+the reference fully removed from the polygon. You can also replace the
+text in the label by specifying `a2s:label`.
 
 This method is (in my opinion) much nicer than the one provided by ditaa:
 
@@ -201,6 +202,8 @@ the supported object types:
 
  * `storage`: The standard "storage" cylinder.
  * `document`: The standard document box with a wavy bottom.
+ * `cloud`: A network cloud.
+ * `computer`: Something that looks kind of like an iMac.
 
 Special objects are implemented as closed SVG paths in a 100x100 box and are
 scaled on-demand. Support for external SVG paths for additional object types
