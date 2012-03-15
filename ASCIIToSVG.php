@@ -326,7 +326,7 @@ class SVGPath {
    * can be called after an individual setOption call.
    */
   public function setOptions($opt) {
-    $this->options = array_merge($this->options, json_decode($opt, true));
+    $this->options = array_merge($this->options, $opt);
   }
 
   /*
@@ -797,13 +797,13 @@ class ASCIIToSVG {
      * The JSON blob may not contain objects as values or the regex will break.
      */
     $this->commands = array();
-    preg_match_all('/^\[(^\]+)\]:?\s+({[^}]+?})$/ims', $data, $matches);
+    preg_match_all('/^\[([^\]]+)\]:?\s+({[^}]+?})/ims', $data, $matches);
     $bound = count($matches[1]);
     for ($i = 0; $i < $bound; $i++) {
-      $this->commands[$matches[1][$i]] = $matches[2][$i];
+      $this->commands[$matches[1][$i]] = json_decode($matches[2][$i], true);
     }
 
-    $data = preg_replace('/^\[(^\]+)\](:?)\s+.*/ims', '', $data);
+    $data = preg_replace('/^\[([^\]]+)\](:?)\s+.*/ims', '', $data);
 
     /*
      * Treat our ASCII field as a grid and store each character as a point in
@@ -1427,7 +1427,7 @@ SVG;
 
     /* Traverse the edge in whatever direction we are going. */
     $cur = $this->getChar($r, $c);
-    while ($this->isEdge($cur, $dir)) {
+    while ($this->isBoxEdge($cur, $dir)) {
       $r += $rInc;
       $c += $cInc;
       $cur = $this->getChar($r, $c);
@@ -1443,16 +1443,12 @@ SVG;
      * When we run into a corner, we have to make a somewhat complicated
      * decision about which direction to turn.
      */
-    if ($this->isCorner($cur)) {
+    if ($this->isBoxCorner($cur)) {
       if (!isset($bucket[$key])) {
         $bucket[$key] = 0;
       }
 
       switch ($cur) {
-      case '+':
-        $e = $path->addPoint($c, $r);
-        break;
-
       case '.':
       case "'":
       case '/':
@@ -1487,7 +1483,7 @@ SVG;
 
       if ($dir == self::DIR_RIGHT) {
         if (!($bucket[$key] & self::DIR_DOWN) &&
-            ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s))) {
+            ($this->isBoxEdge($s, self::DIR_DOWN) || $this->isBoxCorner($s))) {
           /* We can't turn into another top edge. */
           if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
               ($cur == "'" && $s != "'")) {
@@ -1501,12 +1497,12 @@ SVG;
         }
       } elseif ($dir == self::DIR_DOWN) {
         if (!($bucket[$key] & self::DIR_LEFT) &&
-            ($this->isEdge($w, self::DIR_LEFT) || $this->isCorner($w))) {
+            ($this->isBoxEdge($w, self::DIR_LEFT) || $this->isBoxCorner($w))) {
           $newDir == self::DIR_LEFT;
         } 
       } elseif ($dir == self::DIR_LEFT) {
         if (!($bucket[$key] & self::DIR_UP) &&
-            ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n))) {
+            ($this->isBoxEdge($n, self::DIR_UP) || $this->isBoxCorner($n))) {
           /* We can't turn into another bottom edge. */
           if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
               ($cur == "'" && $n != "'")) {
@@ -1515,7 +1511,7 @@ SVG;
         } 
       } elseif ($dir == self::DIR_UP) {
         if (!($bucket[$key] & self::DIR_RIGHT) &&
-            ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e))) {
+            ($this->isBoxEdge($e, self::DIR_RIGHT) || $this->isBoxCorner($e))) {
           $newDir = self::DIR_RIGHT;
         } 
       }
@@ -1547,7 +1543,7 @@ SVG;
        * "correct" one for this object.
        */
       if ($dir != self::DIR_RIGHT && !($bucket[$key] & self::DIR_LEFT) &&
-          ($this->isEdge($w, self::DIR_LEFT) || $this->isCorner($w))) {
+          ($this->isBoxEdge($w, self::DIR_LEFT) || $this->isBoxCorner($w))) {
         $bucket[$key] |= self::DIR_LEFT;
         $this->wallFollow($path, $r, $c - 1, self::DIR_LEFT, $bucket, $d);
         if ($path->isClosed()) {
@@ -1555,7 +1551,7 @@ SVG;
         }
       } 
       if ($dir != self::DIR_LEFT && !($bucket[$key] & self::DIR_RIGHT) &&
-          ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e))) {
+          ($this->isBoxEdge($e, self::DIR_RIGHT) || $this->isBoxCorner($e))) {
         $bucket[$key] |= self::DIR_RIGHT;
         $this->wallFollow($path, $r, $c + 1, self::DIR_RIGHT, $bucket, $d);
         if ($path->isClosed()) {
@@ -1563,7 +1559,7 @@ SVG;
         }
       } 
       if ($dir != self::DIR_DOWN && !($bucket[$key] & self::DIR_UP) &&
-          ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n))) {
+          ($this->isBoxEdge($n, self::DIR_UP) || $this->isBoxCorner($n))) {
           if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
               ($cur == "'" && $n != "'")) {
           /* We can't turn into another bottom edge. */
@@ -1575,7 +1571,7 @@ SVG;
         }
       } 
       if ($dir != self::DIR_UP && !($bucket[$key] & self::DIR_DOWN) &&
-          ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s))) {
+          ($this->isBoxEdge($s, self::DIR_DOWN) || $this->isBoxCorner($s))) {
           if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
               ($cur == "'" && $s != "'")) {
           /* We can't turn into another top edge. */
@@ -1671,10 +1667,6 @@ SVG;
       }
 
       if ($char == ']') {
-        if (isset($this->commands[$ref])) {
-          $box->setOptions($this->commands[$ref]);
-        }
-
         $sX = $points[0]->gridX + 1;
         $sY = $points[0]->gridY + 1;
 
@@ -1682,10 +1674,15 @@ SVG;
           $this->grid[$sY][$sX] = ' ';
           $this->grid[$sY][$sX + strlen($ref) + 1] = ' ';
         } else {
+          unset($this->commands[$ref]['a2s:delref']);
           $len = strlen($ref) + 2;
           for ($i = 0; $i < $len; $i++) {
             $this->grid[$sY][$sX + $i] = ' ';
           }
+        }
+
+        if (isset($this->commands[$ref])) {
+          $box->setOptions($this->commands[$ref]);
         }
       }
     }
@@ -1705,6 +1702,16 @@ SVG;
     return $this->grid[$row][$col];
   }
 
+  private function isBoxEdge($char, $dir = null) {
+    if ($dir == null) {
+      return $char === '-' || $char === '|' || char === ':' || $char === '=' || $char === '*' || $char == '+';
+    } elseif ($dir == self::DIR_UP || $dir == self::DIR_DOWN) {
+      return $char === '|' || $char === ':' || $char === '*' || $char == '+';
+    } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {
+      return $char === '-' || $char === '=' || $char === '*' || $char == '+';
+    }
+  }
+
   private function isEdge($char, $dir = null) {
     if ($dir == null) {
       return $char === '-' || $char === '|' || char === ':' || $char === '=' || $char === '*';
@@ -1713,6 +1720,10 @@ SVG;
     } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {
       return $char === '-' || $char === '=' || $char === '*';
     }
+  }
+
+  private function isBoxCorner($char) {
+    return $char === '.' || $char === "'";
   }
 
   private function isCorner($char) {

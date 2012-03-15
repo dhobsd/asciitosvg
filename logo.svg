@@ -26,39 +26,23 @@
       <path d="M 0 0 L 10 5 L 0 10 z" />
     </marker>
   </defs><g id="boxes" filter="url(#dsFilter)" stroke="black" stroke-width="2" fill="none" >
-<path id="path0" fill="#fff" d="M 234 10 Q 234 0 244 0 Z" />
-<path id="path1" fill="#fff" d="M 18 42 Q 18 32 28 32 L 44 32 Q 54 32 54 22 L 62 32 Q 72 32 72 42 L 72 70 Q 72 80 62 80 L 64 80 Q 54 80 54 70 L 28 80 Q 18 80 18 70 Z" />
-<path id="path2" fill="#fff" d="M 90 42 Q 90 32 100 32 L 134 32 Q 144 32 144 42 L 144 70 Q 144 80 134 80 L 100 80 Q 90 80 90 70 L 90 48 Z" />
-<path id="path3" fill="#fff" d="M 162 42 Q 162 32 172 32 L 206 32 Q 216 32 216 42 L 216 70 Q 216 80 206 80 L 172 80 Q 162 80 162 70 L 162 64 Z" />
-<path id="path4" fill="#fff" d="M 36 58 Q 36 48 46 48 L 44 48 Q 54 48 54 58 L 54 54 Q 54 64 44 64 L 46 64 Q 36 64 36 54 Z" />
+<path id="path0" fill="#88d" d="M 4.5 18 Q 4.5 8 14.5 8 L 228.5 8 Q 238.5 8 238.5 18 L 238.5 126 Q 238.5 136 228.5 136 L 14.5 136 Q 4.5 136 4.5 126 Z" />
+<path id="path1" fill="#fff" d="M 22.5 50 Q 22.5 40 32.5 40 L 48.5 40 Q 58.5 40 58.5 30 L 66.5 40 Q 76.5 40 76.5 50 L 76.5 78 Q 76.5 88 66.5 88 L 68.5 88 Q 58.5 88 58.5 78 L 32.5 88 Q 22.5 88 22.5 78 Z" />
+<path id="path2" fill="#fff" d="M 94.5 50 Q 94.5 40 104.5 40 L 138.5 40 Q 148.5 40 148.5 50 L 148.5 78 Q 148.5 88 138.5 88 L 104.5 88 Q 94.5 88 94.5 78 Z" />
+<path id="path3" fill="#fff" d="M 166.5 50 Q 166.5 40 176.5 40 L 210.5 40 Q 220.5 40 220.5 50 L 220.5 78 Q 220.5 88 210.5 88 L 176.5 88 Q 166.5 88 166.5 78 Z" />
+<path id="path4" fill="#fff" d="M 40.5 66 Q 40.5 56 50.5 56 L 48.5 56 Q 58.5 56 58.5 66 L 58.5 62 Q 58.5 72 48.5 72 L 50.5 72 Q 40.5 72 40.5 62 Z" />
 </g>
 <g id="lines" stroke="black" stroke-width="2" fill="none" >
-<path id="path5" marker-end="url(#Pointer)" d="M 90 48 L 117 48 " />
-<path id="path6" marker-start="url(#iPointer)" d="M 117 64 L 144 64 " />
-<path id="path7" marker-end="url(#Pointer)" d="M 162 64 L 189 64 " />
-<path id="path8" marker-start="url(#iPointer)" d="M 189 48 L 216 48 " />
+<path id="path5" marker-end="url(#Pointer)" d="M 94.5 56 L 121.5 56 " />
+<path id="path6" marker-start="url(#iPointer)" d="M 121.5 72 L 148.5 72 " />
+<path id="path7" marker-end="url(#Pointer)" d="M 166.5 72 L 193.5 72 " />
+<path id="path8" marker-start="url(#iPointer)" d="M 193.5 56 L 220.5 56 " />
 </g>
-<g id="text" fill="black" style="font-family:monospace;font-size:16px" >
-<text x="-5.4" y="4.8" >.------------------------- </text>
-<text x="-5.4" y="20.8" >|[1] </text>
-<text x="228.6" y="20.8" >|</text>
-<text x="-5.4" y="36.8" >|</text>
-<text x="228.6" y="36.8" >|</text>
-<text x="-5.4" y="52.8" >|</text>
-<text x="228.6" y="52.8" >|</text>
-<text x="-5.4" y="68.8" >|</text>
-<text x="228.6" y="68.8" >|</text>
-<text x="-5.4" y="84.8" >|</text>
-<text x="228.6" y="84.8" >|</text>
-<text x="-5.4" y="100.8" >|</text>
-<text x="21.6" y="100.8" >ascii </text>
-<text x="111.6" y="100.8" >2</text>
-<text x="174.6" y="100.8" >svg </text>
-<text x="228.6" y="100.8" >|</text>
-<text x="-5.4" y="116.8" >|</text>
-<text x="228.6" y="116.8" >|</text>
-<text x="-5.4" y="132.8" >'-------------------------' </text>
-<text x="3.6" y="148.8" >https://9vx.org/~dho/a2s/ </text>
-<text x="-5.4" y="180.8" ></text>
+<g id="text" fill="black" style="font-family:monospace;font-size:14.4px" >
+<text x="26.1" y="108.8" fill="#fff" >ascii </text>
+<text x="116.1" y="108.8" fill="#fff" >2</text>
+<text x="179.1" y="108.8" fill="#fff" >svg </text>
+<text x="8.1" y="156.8" >https://9vx.org/~dho/a2s/ </text>
+<text x="-0.9" y="188.8" ></text>
 </g>
 </svg>

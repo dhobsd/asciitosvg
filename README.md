@@ -118,18 +118,20 @@ up with a better way to stylize lines.
 To draw a box or turn a line, you need to specify corners. The following
 characters are valid corner characters:
 
- * `+`: Angular corner connector (plus)
  * `/` and `\`: Quadratic Bézier corners (forward slash, backslash). These
    should not be relied on for rounded corners as they will eventually be
    deprecated for use as diagonal lines.
  * `'` and `.`: Also quadratic Bézier corners, but for tighter turns
    (apostrophe, period)
 
+The `+` token is a control point for lines. It denotes an area where a line
+intersects another line or traverses a box boundary.
+
 A simple box with a line pointing at it:
 
-    +----------+
+    .----------.
     |          | <---------
-    +----------+
+    '----------'
 
 Oh yes, that brings me to markers. Markers can be attached at the end of a
 line to give it a nice arrow by using one of the following characters:
@@ -147,12 +149,9 @@ you type that looks like it's actually a line or a box is going to be a good
 candidate for turning into some pretty SVG path. Here is a box with some
 plain black text in it:
 
-    +-------------------------------------.
+    .-------------------------------------.
     | Hello here and there and everywhere |
-    '-------------------------------------+
-
-Oh, also that box has two sweet rounded edges. I bet you can't guess which
-ones.
+    '-------------------------------------'
 
 ### Basics: Formatting #####################################################
 
@@ -169,10 +168,10 @@ the input. An example:
     [Red Box]: {"fill":"#aa4444"}
     [Blue Box]: {"fill":"#ccccff"}
 
-(This time we curved all the edges!) The text of a reference is left in
-the polygon, making it useful as an object title. You can have the reference
-removed by adding an option `a2s:delref` to the references. Any value will
-suffice to have the reference fully removed from the polygon.
+The text of a reference is left in the polygon, making it useful as an
+object title. You can have the reference removed by adding an option
+`a2s:delref` to the references. Any value will suffice to have the
+reference fully removed from the polygon.
 
 Text appearing within a stylized box automatically tries to fix the color
 contrast if the black text would be too dark on the background. The
@@ -216,8 +215,7 @@ mildly related to the goals of ASCIIToSVG:
    syntax that translates ASCII diagrams into PNG files.
  * [App::Asciio][4] (previously mentioned) allows you to programmatically
    draw ASCII diagrams.
- * [Asciiflow][6] is a web front-end to designing ASCII flowcharts. Its
-   output is compatible with ASCIIToSVG.
+ * [Asciiflow][6] is a web front-end to designing ASCII flowcharts.
    
 If you have something really cool that is related to ASCIIToSVG, and I have
 failed to list it here, do please let me know.
