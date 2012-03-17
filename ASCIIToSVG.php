@@ -98,7 +98,7 @@ class CustomObjects {
       $cacheTime = filemtime($cacheFile);
 
       if (filemtime($dir) <= filemtime($cacheFile)) {
-        self::$objects == unserialize(file_get_contents($cacheFile));
+        self::$objects = unserialize(file_get_contents($cacheFile));
         return;
       }
     } else {
