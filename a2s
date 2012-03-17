@@ -1,6 +1,6 @@
-<?php
+<?php # vim:ts=2:sw=2:et:ft=php
 /*
- * a2s
+ * a2s: CLI utility for ASCIIToSVG
  * Copyright © 2012 Devon H. O'Dell <devon.odell@gmail.com>
  * All rights reserved.
  * 
@@ -70,20 +70,20 @@ if ($input === null) {
 if (isset($opts['o'])) {
   if ($opts['o'] == '-') {
     $outFile = 'php://stdout';
-  }
-  
-  if (!file_exists($opts['o'])) {
-    if (touch($opts['o']) == false) {
-      echo "Cannot write to output file {$opts['o']}.\n";
-      exit(1);
-    }
   } else {
-    if (!is_writable($opts['o'])) {
-      echo "Output file {$opts['o']} is not writable.\n";
-      exit(1);
+    if (!file_exists($opts['o'])) {
+      if (touch($opts['o']) == false) {
+        echo "Cannot write to output file {$opts['o']}.\n";
+        exit(1);
+      }
+    } else {
+      if (!is_writable($opts['o'])) {
+        echo "Output file {$opts['o']} is not writable.\n";
+        exit(1);
+      }
+      
+      $outFile = $opts['o'];
     }
-    
-    $outFile = $opts['o'];
   }
 } else {
   $outFile = 'php://stdout';
@@ -106,3 +106,5 @@ $o->parseGrid();
 
 file_put_contents($outFile, $o->render());
 
+/* vim:ts=2:sw=2:et:
+ *  * */

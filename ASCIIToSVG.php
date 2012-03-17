@@ -1,6 +1,6 @@
 <?php
 /*
- * ASCIIToSVG.php
+ * ASCIIToSVG.php: ASCII diagram -> SVG art generator.
  * Copyright © 2012 Devon H. O'Dell <devon.odell@gmail.com>
  * All rights reserved.
  * 
@@ -26,26 +26,11 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * This is a self-contained set of classes that allows one to generate SVG
- * images from ASCII art diagrams. Syntax working with ditaa
- * (http://ditaa.sourceforge.net) and App::Asciio-generated output is
- * mostly compatible with this module. There are some minor exceptions with
- * regard to syntax and rendering:
- *
- *  o Shapes are not (and cannot be) drawn disjoint: boxes sharing an edge
- *    share the edge.
- *  o Mid-line markers are not yet supported.
- *  o Dashed lines are not yet supported. (This will be possible if line
- *    styling ever happens.)
- *  o Lines traversing box boundaries don't cause the box to be open.
- *  o Colors and shape definitions / modifications are specified in reference
- *    form.
- *  o No special bullet handling; use UTF-8 if you want bullets.
- *  o Supports most App::Asciio output (diagonals not yet supported).
- *
  */
 
 namespace org\dh0\a2s;
+
+include 'svg-path.lex.php';
 
 /*
  * Scale is a singleton class that is instantiated to apply scale
@@ -73,6 +58,109 @@ class Scale {
     $o = self::getInstance();
     $o->xScale = $x;
     $o->yScale = $y;
+  }
+}
+
+/*
+ * CustomObjects allows users to create their own custom SVG paths and use
+ * them as box types with a2s:type references.
+ *
+ * Paths must have width and height set, and must not span multiple lines.
+ * Multiple paths can be specified, one path per line. All objects must
+ * reside in the same directory.
+ *
+ * File operations are horribly slow, so we make a best effort to avoid
+ * as many as possible:
+ *
+ *  * If the directory mtime hasn't changed, we attempt to load our
+ *    objects from a cache file.
+ *
+ *  * If this file doesn't exist, can't be read, or the mtime has
+ *    changed, we scan the directory and update files that have changed
+ *    based on their mtime.
+ *
+ *  * We attempt to save our cache in a temporary directory. It's volatile
+ *    but also requires no configuration.
+ *
+ * We could do a bit better by utilizing APC's shared memory storage, which
+ * would help greatly when running on a server.
+ *
+ * Note that the path parser isn't foolproof, mostly because PHP isn't the
+ * greatest language ever for implementing a parser.
+ */
+class CustomObjects {
+  public static $objects = array();
+
+  public static function loadObjects($dir) {
+    $cacheFile = sys_get_temp_dir() . "/.a2s.objcache";
+
+    if (is_readable($cacheFile)) {
+      $cacheTime = filemtime($cacheFile);
+
+      if (filemtime($dir) <= filemtime($cacheFile)) {
+        self::$objects == unserialize(file_get_contents($cacheFile));
+        return;
+      }
+    } else {
+      $cacheTime = 0;
+    }
+
+    $ents = scandir($dir);
+    foreach ($ents as $ent) {
+      $file = "{$dir}/{$ent}";
+      $base = substr($ent, 0, -5);
+      if (substr($ent, -5) == '.path' && is_readable($file)) {
+        if (isset(self::$objects[$base]) &&
+            filemtime($file) <= self::$cacheTime) {
+          continue;
+        }
+
+        $lines = file($file);
+
+        $i = 0;
+        foreach ($lines as $line) {
+          preg_match('/width="(\d+)/', $line, $m);
+          $width = $m[1];
+          preg_match('/height="(\d+)/', $line, $m);
+          $height = $m[1];
+          preg_match('/d="([^"]+)"/', $line, $m);
+          $path = $m[1];
+
+          self::$objects[$base][$i]['width'] = $width;
+          self::$objects[$base][$i]['height'] = $height;
+          self::$objects[$base][$i++]['path'] = self::parsePath($path);
+        }
+      }
+    }
+
+    file_put_contents($cacheFile, serialize(self::$objects));
+  }
+
+  private static function parsePath($path) {
+    $stream = fopen("data://text/plain,{$path}", 'r');
+
+    $P = new \A2S_SVGPathParser();
+    $S = new \A2S_Yylex($stream);
+
+    while ($t = $S->nextToken()) {
+      $P->A2S_SVGPath($t->type, $t);
+    }
+    /* Force shift/reduce of last token. */
+    $P->A2S_SVGPath(0);
+
+    fclose($stream);
+
+    $cmdArr = array();
+    $i = 0;
+    foreach ($P->commands as $cmd) {
+      foreach ($cmd as $arg) {
+        $arg = (array)$arg;
+        $cmdArr[$i][] = $arg['value'];
+      }
+      $i++;
+    }
+
+    return $cmdArr;
   }
 }
 
@@ -329,16 +417,10 @@ class SVGPath {
     $this->options = array_merge($this->options, $opt);
   }
 
-  /*
-   * Set an individual option.
-   */
   public function setOption($opt, $val) {
     $this->options[$opt] = $val;
   }
 
-  /*
-   * Get a particular option.
-   */
   public function getOption($opt) {
     return $this->options[$opt];
   }
@@ -509,8 +591,9 @@ class SVGPath {
      * done otherwise, but we defer until here to do anything about it because
      * we need information about the object we're replacing.
      */
-    if (isset($this->options['a2s:type'])) {
-      $type = $this->options['a2s:type'];
+    if (isset($this->options['a2s:type']) &&
+        isset(CustomObjects::$objects[$this->options['a2s:type']])) {
+      $object = CustomObjects::$objects[$this->options['a2s:type']];
       unset($this->options['a2s:type']);
 
       /* Again, if no fill was specified, specify one. */
@@ -551,84 +634,30 @@ class SVGPath {
        * of them needs to be transformed differently. I'm sure there's some
        * cleverer way of doing this, but I don't know what that is.
        */
-      $cmds = array();
-      switch ($type) {
-      case 'storage':
-        /* SVG path command for a storage cylinder symbol */
-        $cmds = array ( array ('M', 0, 100),
-                        array ('A', 50, 15, 0, 0, 0,100, 100),
-                        array ('V', 20),
-                        array ('A', 50, 15, 0, 0, 0, 0, 20),
-                        array ('A', 50, 15, 0, 0, 0, 100, 20),
-                        array ('A', 50, 15, 0, 0, 0, 0, 20),
-                        array ('Z'),
-                      );
-        $oW = 100;
-        $oH = 100;
-        break;
+      $out = '<g>';
+      foreach ($object as $o) {
+        $id = self::$id++;
+        $out .= "<path id=\"$id\" d=\"";
 
-      case 'document':
-        /* SVG path commands for a document symbol */
-        $cmds = array ( array ('M', 0, 100),
-                        array ('C', 25, 115, 75, 85, 100, 100),
-                        array ('V', 0),
-                        array ('H', 0),
-                        array ('Z'),
-                      );
-        $oW = 100;
-        $oH = 100;
-        break;
+        $oW = $o['width'];
+        $oH = $o['height'];
 
-      case 'cloud':
-        $cmds = array ( array ('M', 28.78066, 10.32924, ),
-                        array ('C', 39.97551, -3.9887199999999, 50.94711, -1.60258, 67.36249, 8.90619),
-                        array ('C', 85.79048, -0.090190000000007, 104.95807, 20.75976, 92.90632, 41.28056),
-                        array ('C', 108.83237, 58.28354, 93.41511, 86.19772, 80.66657, 81.12594),
-                        array ('C', 87.32655, 91.06902, 67.89348, 110.16904, 48.4707, 92.15458),
-                        array ('C', 22.2647, 109.17234, 13.76248, 94.0907, 10.95319, 79.34712),
-                        array ('C', -9.15339, 73.29619, 4.43736, 38.52779, 9.63664, 33.45378),
-                        array ('C', -5.98431, 17.49043, 16.27402, -0.49431000000004, 28.78066, 10.32924),
-                        array ('Z'),
-                      );
-        $oW = 100;
-        $oH = 100;
-        break;
+        foreach ($o['path'] as $cmd) {
+          /* Run our transformation on every command */
+          $svgCmd = $this->scaleTransform($cmd, $minX, $minY, $tW, $tH, $oW, $oH);
+          $out .= "$svgCmd ";
+        }
+        $out .= '" ';
 
-      case 'computer':
-        $cmds = array ( array ('M', 1.6611296, 6.1461794, 1.6611296, 63.732004),
-                        array ('C', 1.6556215, 66.359883, 1.218959, 69.332686, 4.7694467, 69.115768),
-                        array ('L', 41.222591, 69.115768),
-                        array ('C', 44.97765, 76.223313, 23.757179, 73.853318, 19.074197, 73.975637),
-                        array ('C', 18.724881, 91.87835, 29.914236, 97.789572, 48.16884, 97.192826),
-                        array ('C', 66.705201, 97.84313, 78.902187, 92.091698, 78.116048, 74.138197),
-                        array ('C', 74.004692, 74.317066, 51.009336, 75.995085, 54.256956, 68.845214),
-                        array ('L', 95.486157, 68.845214),
-                        array ('C', 98.216114, 68.813012, 98.94927, 67.28321, 98.734899, 65.042762),
-                        array ('L', 98.734899, 6.9767442),
-                        array ('C', 98.692053, 5.2755274, 97.041962, 3.0116197, 94.341979, 2.583824),
-                        array ('L', 5.2602436, 2.583824),
-                        array ('C', 3.2046817, 2.6301329, 1.5246705, 3.1771759, 1.6611296, 6.1461794),
-                        array ('Z'),
-                      );
-        $oH = 100;
-        $oW = 100;
-        break;
+        if ($i++ < 1) {
+          foreach ($this->options as $opt => $val) {
+            $out .= "$opt=\"$val\" ";
+          }
+        }
+
+        $out .= ' />';
       }
-
-      $id = self::$id++;
-      $out = "<path id=\"$id\" d=\"";
-      foreach ($cmds as $cmd) {
-        /* Run our transformation on every command */
-        $svgCmd = $this->scaleTransform($cmd, $minX, $minY, $tW, $tH, $oW, $oH);
-        $out .= "$svgCmd ";
-      }
-      $out .= '" ';
-
-      foreach ($this->options as $opt => $val) {
-        $out .= "$opt=\"$val\" ";
-      }
-
-      $out .= ' />';
+      $out .= '</g>';
 
       /* Bazinga. */
       return $out;
@@ -821,7 +850,9 @@ class ASCIIToSVG {
   public function __construct($data) {
     /* For debugging purposes */
     $this->rawData = $data;
-    
+
+    CustomObjects::loadObjects('./objects');
+
     $this->clearCorners = array();
 
     /*
