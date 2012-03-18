@@ -31,6 +31,8 @@ namespace org\dh0\a2s;
 
 require_once 'ASCIIToSVG.php';
 
+error_reporting(E_ALL|E_STRICT);
+
 $opts = getopt("hi::o::s::");
 
 if (isset($opts['h'])) {

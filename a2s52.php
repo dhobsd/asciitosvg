@@ -332,55 +332,34 @@ class A2S_SVGPath {
     array_pop($this->points);
   }
 
-  public function addPoint($x, $y) {
+  public function addPoint($x, $y, $flags = A2S_Point::POINT) {
     $p = new A2S_Point($x, $y);
 
     /*
      * If we attempt to add our original point back to the path, the polygon
      * must be closed.
      */
-    if ($this->points[0]->x == $p->x && $this->points[0]->y == $p->y) {
-      $this->flags |= self::CLOSED;
-      return true;
-    }
-
-    /*
-     * For the purposes of this library, paths should never intersect each
-     * other. Even in the case of closing the polygon, we do not store the
-     * final coordinate twice.
-     */
-    foreach ($this->points as $point) {
-      if ($point->x == $p->x && $point->y == $p->y) {
+    if (count($this->points) > 0) {
+      if ($this->points[0]->x == $p->x && $this->points[0]->y == $p->y) {
+        $this->flags |= self::CLOSED;
         return true;
+      }
+
+      /*
+      * For the purposes of this library, paths should never intersect each
+      * other. Even in the case of closing the polygon, we do not store the
+      * final coordinate twice.
+      */
+      foreach ($this->points as $point) {
+        if ($point->x == $p->x && $point->y == $p->y) {
+          return true;
+        }
       }
     }
 
-    $p->flags |= A2S_Point::POINT;
+    $p->flags |= $flags;
     $this->points[] = $p;
 
-    return false;
-  }
-
-  /*
-   * Just like a point, except this point specifies the control point for a
-   * quadratic Bezier curve.
-   */
-  public function addControlPoint($x, $y) {
-    $p = new A2S_Point($x, $y);
-    $p->flags |= A2S_Point::CONTROL;
-
-    if ($this->points[0]->x == $p->x && $this->points[0]->y == $p->y) {
-      $this->flags |= self::CLOSED;
-      return true;
-    }
-
-    foreach ($this->points as $point) {
-      if ($point->x == $p->x && $point->y == $p->y) {
-        return true;
-      }
-    }
-
-    $this->points[] = $p;
     return false;
   }
 
@@ -635,6 +614,7 @@ class A2S_SVGPath {
        * cleverer way of doing this, but I don't know what that is.
        */
       $out = '<g>';
+      $i = 0;
       foreach ($object as $o) {
         $id = self::$id++;
         $out .= "<path id=\"$id\" d=\"";
@@ -649,6 +629,7 @@ class A2S_SVGPath {
         }
         $out .= '" ';
 
+        /* Don't add options to sub-paths */
         if ($i++ < 1) {
           foreach ($this->options as $opt => $val) {
             $out .= "$opt=\"$val\" ";
@@ -879,9 +860,6 @@ class A2S_ASCIIToSVG {
     $this->grid = explode("\n", $data);
 
     foreach ($this->grid as $k => $line) {
-      if (strlen($line) > $this->canvasWidth) {
-        $this->canvasWidth = strlen($line);
-      }
       $this->grid[$k] = str_split($line);
     }
 
@@ -1005,7 +983,7 @@ SVG;
 
           /* Slanted corners mean curved corners */
           if ($char == "\\" || $char == '/' || $char == '.' || $char == "'") {
-            $path->addControlPoint($col, $row);
+            $path->addPoint($col, $row, A2S_Point::CONTROL);
           } else {
             $path->addPoint($col, $row);
           }
@@ -1415,7 +1393,7 @@ SVG;
 
     if ($this->isCorner($cur)) {
       if ($cur == "\\" || $cur == '/' || $cur == '.' || $cur == "'") {
-        $path->addControlPoint($c, $r);
+        $path->addPoint($c, $r, A2S_Point::CONTROL);
       } else {
         $path->addPoint($c, $r);
       }
@@ -1434,9 +1412,9 @@ SVG;
       $s = $this->getChar($r + 1, $c);
       $e = $this->getChar($r, $c + 1);
       $w = $this->getChar($r, $c - 1);
+      $next = $this->getChar($r + $rInc, $c + $cInc);
       
-      if ($this->isCorner($this->grid[$r + $rInc][$c + $cInc]) ||
-          $this->isEdge($this->grid[$r + $rInc][$c + $cInc], $dir)) {
+      if ($this->isCorner($next) || $this->isEdge($next, $dir)) {
         return $this->walk($path, $r + $rInc, $c + $cInc, $dir);
       } elseif ($dir != self::DIR_DOWN &&
                 ($this->isCorner($n) || $this->isEdge($n, self::DIR_UP))) {
@@ -1527,7 +1505,7 @@ SVG;
       case "'":
       case '/':
       case "\\":
-        $e = $path->addControlPoint($c, $r);
+        $e = $path->addPoint($c, $r, A2S_Point::CONTROL);
         break;
       }
 
@@ -1749,7 +1727,11 @@ SVG;
           $this->grid[$sY][$sX] = ' ';
           $this->grid[$sY][$sX + strlen($ref) + 1] = ' ';
         } else {
-          $label = $this->commands[$ref]['a2s:label'];
+          if (isset($this->commands[$ref]['a2s:label'])) {
+            $label = $this->commands[$ref]['a2s:label'];
+          } else {
+            $label = null;
+          }
 
           unset($this->commands[$ref]['a2s:delref']);
           unset($this->commands[$ref]['a2s:label']);
@@ -1781,7 +1763,11 @@ SVG;
   }
 
   private function getChar($row, $col) {
-    return $this->grid[$row][$col];
+    if (isset($this->grid[$row][$col])) {
+      return $this->grid[$row][$col];
+    }
+
+    return null;
   }
 
   private function isBoxEdge($char, $dir = null) {
