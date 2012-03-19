@@ -1176,25 +1176,29 @@ SVG;
          * basically guaranteed to represent the start of the line.
          */
         case '<':
-          if ($this->isEdge($this->getChar($r, $c + 1), self::DIR_RIGHT)) {
+          $e = $this->getChar($r, $c + 1);
+          if ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e)) {
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_RIGHT;
           }
           break;
         case '^':
-          if ($this->isEdge($this->getChar($r + 1, $c), self::DIR_DOWN)) {
+          $s = $this->getChar($r + 1, $c);
+          if ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s)) { 
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_DOWN;
           }
           break;
         case '>':
-          if ($this->isEdge($this->getChar($r, $c - 1), self::DIR_LEFT)) {
+          $w = $this->getChar($r, $c - 1);
+          if ($this->isEdge($w, self::DIR_LEFT) || $this->isCorner($w)) {
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_LEFT;
           }
           break;
         case 'v':
-          if ($this->isEdge($this->getChar($r - 1, $c), self::DIR_UP)) {
+          $n = $this->getChar($r - 1, $c);
+          if ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n)) {
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_UP;
           }
@@ -1223,10 +1227,12 @@ SVG;
           $n = $this->getChar($r-1, $c);
           $s = $this->getChar($r+1, $c);
           if (($s == '|' || $s == ':' || $this->isCorner($s)) &&
-              $n != '|' && $n != ':' && !$this->isCorner($n)) {
+              $n != '|' && $n != ':' && !$this->isCorner($n) &&
+              $n != '^') {
             $dir = self::DIR_DOWN;
           } elseif (($n == '|' || $n == ':' || $this->isCorner($n)) &&
-                    $s != '|' && $s != ':' && !$this->isCorner($s)) {
+                    $s != '|' && $s != ':' && !$this->isCorner($s) &&
+                    $s != 'v') {
             $dir = self::DIR_UP;
           }
           break;
@@ -1244,10 +1250,12 @@ SVG;
           $w = $this->getChar($r, $c-1);
           $e = $this->getChar($r, $c+1);
           if (($w == '-' || $w == '=' || $this->isCorner($w)) &&
-              $e != '=' && $e != '-' && !$this->isCorner($e)) {
+              $e != '=' && $e != '-' && !$this->isCorner($e) &&
+              $e != '>') {
             $dir = self::DIR_LEFT;
           } elseif (($e == '-' || $e == '=' || $this->isCorner($e)) &&
-                    $w != '=' && $w != '-' && !$this->isCorner($w)) {
+                    $w != '=' && $w != '-' && !$this->isCorner($w) &&
+                    $w != '<') {
             $dir = self::DIR_RIGHT;
           }
           break;
@@ -1324,6 +1332,7 @@ SVG;
            * corners in tact, still.
            */
           $this->clearObject($line);
+          $this->dumpGrid();
           $this->svgObjects->addObject($line);
         }
       }
@@ -1413,7 +1422,7 @@ SVG;
           while ($i < count($line) && $this->grid[$row][$i] != ' ') {
             $str .= $this->grid[$row][$i++];
             /* Eat up to 1 space */
-            if ($this->grid[$row][$i] == ' ') {
+            if ($this->getChar($row, $i) == ' ') {
               $str .= ' ';
               $i++;
             }
