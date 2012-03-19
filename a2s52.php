@@ -462,7 +462,11 @@ class A2S_SVGPath {
   }
 
   public function getOption($opt) {
-    return $this->options[$opt];
+    if (isset($this->options[$opt])) {
+      return $this->options[$opt];
+    }
+
+    return null;
   }
 
   /*
