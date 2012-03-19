@@ -1391,10 +1391,10 @@ SVG;
             if ($boxes[$j]->hasPoint($tP->x, $tP->y)) {
               $fill = $boxes[$j]->getOption('fill');
               if (substr($fill, 0, 1) != '#') {
-                if (!isset($colors[strtolower($fill)])) {
+                if (!isset($GLOBALS['A2S_colors'][strtolower($fill)])) {
                   continue;
                 } else {
-                  $fill = $colors[strtolower($fill)];
+                  $fill = $GLOBALS['A2S_colors'][strtolower($fill)];
                 }
               } else {
                 if (strlen($fill) != 4 && strlen($fill) != 7) {

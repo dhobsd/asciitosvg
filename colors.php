@@ -1,6 +1,6 @@
 <?php
 
-$colors = array(
+$A2S_colors = array(
   "indian red"   => "#cd5c5c",
   "light coral"  => "#f08080",
   "salmon"       => "#fa8072",
