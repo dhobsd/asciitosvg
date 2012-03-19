@@ -91,56 +91,113 @@ class A2S_Scale {
 class A2S_CustomObjects {
   public static $objects = array();
 
-  public static function loadObjects($dir) {
+  /*
+   * Closures / callable function names / whatever for integrating non-default
+   * loading and storage functionality.
+   */
+  public static $loadCacheFn = null;
+  public static $storCacheFn = null;
+  public static $loadObjsFn = null;
+
+
+  public static function loadObjects() {
     $cacheFile = sys_get_temp_dir() . "/.a2s.objcache";
+    $dir = './objects';
 
-    if (is_readable($cacheFile)) {
-      $cacheTime = filemtime($cacheFile);
+    if (is_callable(self::$loadCacheFn)) {
+      /*
+       * Should return exactly what was given to the $storCacheFn when it was
+       * last called, or null if nothing can be loaded.
+       */
+      self::$objects = self::$loadCacheFn();
+      return;
+    } else {
+      if (is_readable($cacheFile)) {
+        $cacheTime = filemtime($cacheFile);
 
-      if (filemtime($dir) <= filemtime($cacheFile)) {
-        self::$objects = unserialize(file_get_contents($cacheFile));
-        return;
+        if (filemtime($dir) <= filemtime($cacheFile)) {
+          self::$objects = unserialize(file_get_contents($cacheFile));
+          return;
+        }
+      } else {
+        $cacheTime = 0;
+      }
+    }
+
+    if (is_callable(self::$loadObjsFn)) {
+      /*
+       * Returns an array of arrays of path information. The innermost arrays
+       * (containing the path information) contain the path name, the width of
+       * the bounding box, the height of the bounding box, and the path
+       * command. This interface does *not* want the path's XML tag. An array
+       * returned from here containing two objects that each have 1 line would
+       * look like:
+       *
+       * array (
+       *   array (
+       *     name => 'pathA',
+       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 0 L 10 10'),
+       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 10 L 10 0'),
+       *   ),
+       *   array (
+       *     name => 'pathB',
+       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 5 L 5 10'),
+       *     array ('width' => 10, 'height' => 10, 'path' => 'M 5 10 L 10 5'),
+       *   ),
+       * );
+       */
+      $objs = self::$loadObjsFn();
+      $i = 0;
+      foreach ($objs as $obj) {
+        foreach ($obj as $path) {
+          self::$objects[$obj['name']][$i]['width'] = $path['width'];
+          self::$objects[$obj['name']][$i]['height'] = $path['height'];
+          self::$objects[$obj['name']][$i++]['path'] =
+            self::parsePath($path['path']);
+        }
       }
     } else {
-      $cacheTime = 0;
-    }
+      $ents = scandir($dir);
+      foreach ($ents as $ent) {
+        $file = "{$dir}/{$ent}";
+        $base = substr($ent, 0, -5);
+        if (substr($ent, -5) == '.path' && is_readable($file)) {
+          if (isset(self::$objects[$base]) &&
+              filemtime($file) <= self::$cacheTime) {
+            continue;
+          }
 
-    $ents = scandir($dir);
-    foreach ($ents as $ent) {
-      $file = "{$dir}/{$ent}";
-      $base = substr($ent, 0, -5);
-      if (substr($ent, -5) == '.path' && is_readable($file)) {
-        if (isset(self::$objects[$base]) &&
-            filemtime($file) <= self::$cacheTime) {
-          continue;
-        }
+          $lines = file($file);
 
-        $lines = file($file);
+          $i = 0;
+          foreach ($lines as $line) {
+            preg_match('/width="(\d+)/', $line, $m);
+            $width = $m[1];
+            preg_match('/height="(\d+)/', $line, $m);
+            $height = $m[1];
+            preg_match('/d="([^"]+)"/', $line, $m);
+            $path = $m[1];
 
-        $i = 0;
-        foreach ($lines as $line) {
-          preg_match('/width="(\d+)/', $line, $m);
-          $width = $m[1];
-          preg_match('/height="(\d+)/', $line, $m);
-          $height = $m[1];
-          preg_match('/d="([^"]+)"/', $line, $m);
-          $path = $m[1];
-
-          self::$objects[$base][$i]['width'] = $width;
-          self::$objects[$base][$i]['height'] = $height;
-          self::$objects[$base][$i++]['path'] = self::parsePath($path);
+            self::$objects[$base][$i]['width'] = $width;
+            self::$objects[$base][$i]['height'] = $height;
+            self::$objects[$base][$i++]['path'] = self::parsePath($path);
+          }
         }
       }
     }
 
-    file_put_contents($cacheFile, serialize(self::$objects));
+    if (is_callable(self::$storCacheFn)) {
+      self::$storCacheFn(self::$objects);
+    } else {
+      file_put_contents($cacheFile, serialize(self::$objects));
+    }
   }
 
   private static function parsePath($path) {
     $stream = fopen("data://text/plain,{$path}", 'r');
 
-    $P = new \A2S_SVGPathParser();
-    $S = new \A2S_Yylex($stream);
+    $P = new A2S_SVGPathParser();
+    $S = new A2S_Yylex($stream);
 
     while ($t = $S->nextToken()) {
       $P->A2S_SVGPath($t->type, $t);
@@ -832,7 +889,7 @@ class A2S_ASCIIToSVG {
     /* For debugging purposes */
     $this->rawData = $data;
 
-    A2S_CustomObjects::loadObjects('./objects');
+    A2S_CustomObjects::loadObjects();
 
     $this->clearCorners = array();
 

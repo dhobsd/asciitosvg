@@ -7,6 +7,10 @@ all: svg-path.lex svg-path.y
 	./mk52.pl < ASCIIToSVG.php > a2s52.php
 	php a2s -ilogo.txt -ologo.svg
 
+some:
+	./mk52.pl < ASCIIToSVG.php > a2s52.php
+	php a2s -ilogo.txt -ologo.svg
+
 clean:
 	rm -f svg-path.h svg-path.out
 

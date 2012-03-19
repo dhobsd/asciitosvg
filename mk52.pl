@@ -20,6 +20,10 @@ while ($nocomments =~ m/class\s+(\S+)/g) {
   $src =~ s/\b$class\b/A2S_$class/g;
 }
 
+# Get rid of \A2S namespace usage for scanner / parser.
+$src =~ s/\\A2S_SVGPathParser/A2S_SVGPathParser/g;
+$src =~ s/\\A2S_Yylex/A2S_Yylex/g;
+
 # Not perfect, since it changes some things in comments in generated output
 print $src;
 
