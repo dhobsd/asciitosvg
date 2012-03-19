@@ -109,7 +109,8 @@ class A2S_CustomObjects {
        * Should return exactly what was given to the $storCacheFn when it was
        * last called, or null if nothing can be loaded.
        */
-      self::$objects = self::$loadCacheFn();
+      $fn = self::$loadCacheFn;
+      self::$objects = $fn();
       return;
     } else {
       if (is_readable($cacheFile)) {
@@ -150,7 +151,9 @@ class A2S_CustomObjects {
        *   ),
        * );
        */
-      $objs = self::$loadObjsFn();
+      $fn = self::$loadObjsFn;
+      $objs = $fn();
+
       $i = 0;
       foreach ($objs as $obj) {
         foreach ($obj['paths'] as $path) {
@@ -191,7 +194,8 @@ class A2S_CustomObjects {
     }
 
     if (is_callable(self::$storCacheFn)) {
-      self::$storCacheFn(self::$objects);
+      $fn = self::$storCacheFn;
+      $fn(self::$objects);
     } else {
       file_put_contents($cacheFile, serialize(self::$objects));
     }
@@ -1332,7 +1336,6 @@ SVG;
            * corners in tact, still.
            */
           $this->clearObject($line);
-          $this->dumpGrid();
           $this->svgObjects->addObject($line);
         }
       }
