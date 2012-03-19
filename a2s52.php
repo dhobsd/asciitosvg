@@ -136,20 +136,24 @@ class A2S_CustomObjects {
        * array (
        *   array (
        *     name => 'pathA',
-       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 0 L 10 10'),
-       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 10 L 10 0'),
+       *     paths => array (
+       *       array ('width' => 10, 'height' => 10, 'path' => 'M 0 0 L 10 10'),
+       *       array ('width' => 10, 'height' => 10, 'path' => 'M 0 10 L 10 0'),
+       *     ),
        *   ),
        *   array (
        *     name => 'pathB',
-       *     array ('width' => 10, 'height' => 10, 'path' => 'M 0 5 L 5 10'),
-       *     array ('width' => 10, 'height' => 10, 'path' => 'M 5 10 L 10 5'),
+       *     paths => array (
+       *       array ('width' => 10, 'height' => 10, 'path' => 'M 0 5 L 5 10'),
+       *       array ('width' => 10, 'height' => 10, 'path' => 'M 5 10 L 10 5'),
+       *     ),
        *   ),
        * );
        */
       $objs = self::$loadObjsFn();
       $i = 0;
       foreach ($objs as $obj) {
-        foreach ($obj as $path) {
+        foreach ($obj['paths'] as $path) {
           self::$objects[$obj['name']][$i]['width'] = $path['width'];
           self::$objects[$obj['name']][$i]['height'] = $path['height'];
           self::$objects[$obj['name']][$i++]['path'] =
