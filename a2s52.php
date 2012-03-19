@@ -31,6 +31,7 @@
 #namespace org\dh0\a2s;
 
 include 'svg-path.lex.php';
+include 'colors.php';
 
 /*
  * A2S_Scale is a singleton class that is instantiated to apply scale
@@ -1389,6 +1390,19 @@ SVG;
             /* N.B. We may want to make sure it has the while string */
             if ($boxes[$j]->hasPoint($tP->x, $tP->y)) {
               $fill = $boxes[$j]->getOption('fill');
+              if (substr($fill, 0, 1) != '#') {
+                if (!isset($colors[strtolower($fill)])) {
+                  continue;
+                } else {
+                  $fill = $colors[strtolower($fill)];
+                }
+              } else {
+                if (strlen($fill) != 4 && strlen($fill) != 7) {
+                  continue;
+                }
+              }
+                
+
               if ($fill) {
                 /* Attempt to parse the fill color */
                 if (strlen($fill) == 4) {
