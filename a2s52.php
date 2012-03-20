@@ -525,131 +525,347 @@ class A2S_SVGPath {
     return $oddNodes;
   }
 
-  /*
-   * Perform a scale transform on an SVG path command given the following
-   * inputs:
-   *  * Path command as an array of arguments
-   *  * X offset
-   *  * Y offset
-   *  * Transform width
-   *  * Transform height
-   *  * Current width
-   *  * Current height
+  /* 
+   * Apply a matrix transformation to the coordinates ($x, $y). The
+   * multiplication is implemented on the matrices:
    *
-   * Although we currently are doing this on our 100x100 paths (which should
-   * make these calculations really easy), this should support less regular
-   * sizes as well.
+   * | a b c |   | x |
+   * | d e f | * | y |
+   * | 0 0 1 |   | 1 |
    *
-   * Most of these transformations have a well-defined format. Absolute
-   * values are translated by multiplying them with their scaled proportional
-   * value and added to their offset. Relative values are calculated as
-   * their proportion to the old scale to the new one.
+   * Additional information on the transformations and what each R,C in the
+   * transformation matrix represents, see:
    *
-   * Generally, SVG path commands specify absolute positions when the command
-   * is capitalized and relative positions when lowercased.
-   *
-   * XXX: needs to support all SVG path commands.
+   * http://www.w3.org/TR/SVG/coords.html#TransformMatrixDefined
    */
-  private function scaleTransform($cmd, $x, $y, $w, $h, $oW, $oH) {
-    /* Calculate our new proportions for scaling on the X / Y axis */
-    $pX = $w / $oW;
-    $pY = $h / $oH;
+  private function matrixTransform($matrix, $x, $y) {
+    $xyMat = array(array($x), array($y), array(1));
+    $newXY = array(array());
 
-    $svgCmd = array_shift($cmd);
-    switch ($svgCmd) {
-    /* Close the path, this is the hardest one. */
-    case 'Z':
-    case 'z':
-      return 'Z';
+    for ($i = 0; $i < 3; $i++) {
+      for ($j = 0; $j < 1; $j++) {
+        $sum = 0;
 
-    /* Move to a position */ 
-    case 'M':
-      list ($tX, $tY) = $cmd;
-      $tX = $x + ($tX * $pX);
-      $tY = $y + ($tY * $pY);
-      return "M {$tX} {$tY}";
-    case 'm':
-      list ($tX, $tY) = $cmd;
-      $tX = $x + (($tX / $oW) * $w);
-      $tY = $x + (($tY / $oH) * $w);
-      return "m {$tX} {$tY}";
+        for ($k = 0; $k < 3; $k++) {
+          $sum += $matrix[$i][$k] * $xyMat[$k][$j];
+        }
 
-    /*
-     * Create an arc. The radii are relative to the coordinate space.
-     * x-axis rotation / large arc / sweep don't need translation.
-     */
-    case 'A':
-      list ($rX, $rY, $rot, $arc, $sweep, $tX, $tY) = $cmd;
-      $rX = (($rX / $oW) * $w);
-      $rY = (($rY / $oH) * $h);
-      $tX = $x + ($tX * $pX);
-      $tY = $y + ($tY * $pY);
-      return "A {$rX} {$rY} {$rot} {$arc} {$sweep} {$tX} {$tY}";
-    case 'a':
-      list ($rX, $rY, $rot, $arc, $sweep, $tX, $tY) = $cmd;
-      $rX = $x + ($rX / $oW) * $w;
-      $rY = $y + ($rY / $oH) * $h;
-      $tX = $x + (($tX / $oW) * $w);
-      $tY = $y + (($tY / $oH) * $w);
-      return "a {$rX} {$rY} {$rot} {$arc} {$sweep} {$tX} {$tY}";
-
-    /*
-     * Cubic Bézier curves. The control points are all relative to the new
-     * scale.
-     */
-    case 'C':
-      list ($cX1, $cY1, $cX2, $cY2, $tX, $tY) = $cmd;
-      $cX1 = $x + ($cX1 * $pX);
-      $cX2 = $x + ($cX2 * $pX);
-      $cY1 = $y + ($cY1 * $pY);
-      $cY2 = $y + ($cY2 * $pY);
-      $tX = $x + ($tX * $pX);
-      $tY = $y + ($tY * $pY);
-      return "C {$cX1} {$cY1} {$cX2} {$cY2} {$tX} {$tY}";
-    case 'c':
-      list ($cX1, $cY1, $cX2, $cY2, $tX, $tY) = $cmd;
-      $cX1 = (($cX1 / $oW) * $w);
-      $cX2 = (($cX2 / $oW) * $w);
-      $cY1 = (($cY1 / $oH) * $w);
-      $cY2 = (($cY2 / $oH) * $w);
-      $tX = (($tX / $oW) * $w);
-      $tY = (($tY / $oH) * $w);
-      return "c {$cX1} {$cY1} {$cX2} {$cY2} {$tX} {$tY}";
-
-    /* Horizontal line-to */
-    case 'H':
-      list ($tX) = $cmd;
-      $tX = $x + ($tX * $pX);
-      return "H {$tX}";
-    case 'h':
-      list ($tX) = $cmd;
-      $tX = (($tX / $oH) * $w);
-      return "H {$tX}";
-
-    /* Vertical line-to */
-    case 'V':
-      list ($tY) = $cmd;
-      $tY = $y + ($tY * $pY);
-      return "V {$tY}";
-    case 'v':
-      list ($tY) = $cmd;
-      $tY = (($tY / $oH) * $w);
-      return "v {$tY}";
-
-    /* Line-to */
-    case 'L':
-      list ($tX, $tY) = $cmd;
-      $tX = $x + ($tX * $pX);
-      $tY = $y + ($tY * $pY);
-      return "L {$tX} {$tY}";
-    case 'l':
-      list ($tX, $tY) = $cmd;
-      $tX = (($tX / $oW) * $w);
-      $tY = (($tY / $oH) * $w);
-      return "l {$tX} {$tY}";
+        $newXY[$i][$j] = $sum;
+      }
     }
 
-    return '';
+    /* Return the coordinates as a vector */
+    return array($newXY[0][0], $newXY[1][0], $newXY[2][0]);
+  }
+
+  /*
+   * Translate the X and Y coordinates. tX and tY specify the distance to
+   * transform.
+   */
+  private function translateTransform($tX, $tY, $x, $y) {
+    $matrix = array(array(1, 0, $tX), array(0, 1, $tY), array(0, 0, 1));
+    return $this->matrixTransform($matrix, $x, $y);
+  }
+
+  /*
+   * A2S_Scale transformations are implemented by applying the scale to the X and
+   * Y coordinates. One unit in the new coordinate system equals $s[XY] units
+   * in the old system. Thus, if you want to double the size of an object on
+   * both axes, you sould call scaleTransform(0.5, 0.5, $x, $y)
+   */
+  private function scaleTransform($sX, $sY, $x, $y) {
+    $matrix = array(array($sX, 0, 0), array(0, $sY, 0), array(0, 0, 1));
+    return $this->matrixTransform($matrix, $x, $y);
+  }
+
+  /*
+   * Rotate the coordinates around the center point cX and cY. If these
+   * are not specified, the coordinate is rotated around 0,0. The angle
+   * is specified in degrees.
+   */
+  private function rotateTransform($angle, $x, $y, $cX = 0, $cY = 0) {
+    $angle = $angle * (pi() / 180);
+    if ($cX != 0 || $cY != 0) {
+      list ($x, $y) = $this->translateTransform($cX, $cY, $x, $y);
+    }
+
+    $matrix = array(array(cos($angle), -sin($angle), 0),
+                    array(sin($angle), cos($angle), 0),
+                    array(0, 0, 1));
+    $ret = $this->matrixTransform($matrix, $x, $y);
+
+    if ($cX != 0 || $cY != 0) {
+      list ($x, $y) = $this->translateTransform(-$cX, -$cY, $ret[0], $ret[1]);
+      $ret[0] = $x;
+      $ret[1] = $y;
+    }
+
+    return $ret;
+  }
+
+  /*
+   * Skews along the X axis at specified angle. The angle is specified in
+   * degrees.
+   */
+  private function skewXTransform($angle, $x, $y) {
+    $angle = $angle * (pi() / 180);
+    $matrix = array(array(1, tan($angle), 0), array(0, 1, 0), array(0, 0, 1));
+    return $this->matrixTransform($matrix, $x, $y);
+  }
+
+  /*
+   * Skews along the Y axis at specified angle. The angle is specified in
+   * degrees.
+   */
+  private function skewYTransform($angle, $x, $y) {
+    $angle = $angle * (pi() / 180);
+    $matrix = array(array(1, 0, 0), array(tan($angle), 1, 0), array(0, 0, 1));
+    return $this->matrixTransform($matrix, $x, $y);
+  }
+
+  /*
+   * Apply a transformation to a point $p.
+   */
+  private function applyTransformToPoint($txf, $p, $args) {
+    switch ($txf) {
+    case 'translate':
+      return $this->translateTransform($args[0], $args[1], $p->x, $p->y);
+
+    case 'scale':
+      return $this->scaleTransform($args[0], $args[1], $p->x, $p->y);
+
+    case 'rotate':
+      if (count($args) > 1) {
+        return  $this->rotateTransform($args[0], $p->x, $p->y, $args[1], $args[2]);
+      } else {
+        return  $this->rotateTransform($args[0], $p->x, $p->y);
+      }
+
+    case 'skewX':
+      return $this->skewXTransform($args[0], $p->x, $p->y);
+
+    case 'skewY':
+      return $this->skewYTransform($args[0], $p->x, $p->y);
+    }
+  }
+
+  /*
+   * Apply the transformation function $txf to all coordinates on path $p
+   * providing $args as arguments to the transformation function.
+   */
+  private function applyTransformToPath($txf, &$p, $args) {
+    $pathCmds = count($p['path']);
+    $curPoint = new A2S_Point(0, 0);
+    $prevType = null;
+    $curType = null;
+
+    for ($i = 0; $i < $pathCmds; $i++) {
+      $cmd = &$p['path'][$i];
+
+      $prevType = $curType;
+      $curType = $cmd[0];
+
+      switch ($curType) {
+      case 'z':
+      case 'Z':
+        /* Can't transform this */
+        break;
+
+      case 'm':
+        if ($prevType != null) {
+          $curPoint->x += $cmd[1];
+          $curPoint->y += $cmd[2];
+
+          list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+          $curPoint->x = $x;
+          $curPoint->y = $y;
+
+          $cmd[1] = $x;
+          $cmd[2] = $y;
+        } else {
+          $curPoint->x = $cmd[1];
+          $curPoint->y = $cmd[2];
+
+          list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+          $curPoint->x = $x;
+          $curPoint->y = $y;
+
+          $cmd[1] = $x;
+          $cmd[2] = $y;
+          $curType = 'l';
+        }
+
+        break;
+
+      case 'M':
+        $curPoint->x = $cmd[1];
+        $curPoint->y = $cmd[2];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $x;
+        $cmd[2] = $y;
+
+        if ($prevType == null) {
+          $curType = 'L';
+        }
+        break;
+
+      case 'l':
+        $curPoint->x += $cmd[1];
+        $curPoint->y += $cmd[2];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $x;
+        $cmd[2] = $y;
+
+        break;
+
+      case 'L':
+        $curPoint->x = $cmd[1];
+        $curPoint->y = $cmd[2];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $x;
+        $cmd[2] = $y;
+
+        break;
+
+      case 'v':
+        $curPoint->y += $cmd[1];
+        $curPoint->x += 0;
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $y;
+
+        break;
+
+      case 'V':
+        $curPoint->y = $cmd[1];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $y;
+
+        break;
+
+      case 'h':
+        $curPoint->x += $cmd[1];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $x;
+
+        break;
+
+      case 'H':
+        $curPoint->x = $cmd[1];
+
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+
+        $cmd[1] = $x;
+
+        break;
+
+      case 'c':
+        $tP = new A2S_Point(0, 0);
+        $tP->x = $curPoint->x + $cmd[1]; $tP->y = $curPoint->y + $cmd[2];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $tP, $args);
+        $cmd[1] = $x;
+        $cmd[2] = $y;
+
+        $tP->x = $curPoint->x + $cmd[3]; $tP->y = $curPoint->y + $cmd[4];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $tP, $args);
+        $cmd[3] = $x;
+        $cmd[4] = $y;
+
+        $curPoint->x += $cmd[5];
+        $curPoint->y += $cmd[6];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+        $cmd[5] = $x;
+        $cmd[6] = $y;
+
+        break;
+      case 'C':
+        $curPoint->x = $cmd[1];
+        $curPoint->y = $cmd[2];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $cmd[1] = $x;
+        $cmd[2] = $y;
+
+        $curPoint->x = $cmd[3];
+        $curPoint->y = $cmd[4];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $cmd[3] = $x;
+        $cmd[4] = $y;
+
+        $curPoint->x = $cmd[5];
+        $curPoint->y = $cmd[6];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+        $cmd[5] = $x;
+        $cmd[6] = $y;
+
+        break;
+
+      case 's':
+      case 'S':
+
+      case 'q':
+      case 'Q':
+        
+      case 't':
+      case 'T':
+
+      case 'a':
+        break;
+
+      case 'A':
+        /*
+         * This radius is relative to the start and end points, so it makes
+         * sense to scale, rotate, or skew it, but not translate it.
+         */
+        if ($txf != 'translate') {
+          $curPoint->x = $cmd[1];
+          $curPoint->y = $cmd[2];
+          list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+          $cmd[1] = $x;
+          $cmd[2] = $y;
+        }
+
+        $curPoint->x = $cmd[6];
+        $curPoint->y = $cmd[7];
+        list ($x, $y) = $this->applyTransformToPoint($txf, $curPoint, $args);
+        $curPoint->x = $x;
+        $curPoint->y = $y;
+        $cmd[6] = $x;
+        $cmd[7] = $y;
+
+        break;
+      }
+    }
   }
 
   public function render() {
@@ -694,19 +910,9 @@ class A2S_SVGPath {
         }
       }
 
-      /*
-       * Need to provide width and height for proportional values; things like
-       * arc radii end up being proportional to the new width as opposed to
-       * the coordinate system.
-       */
-      $tW = $maxX - $minX;
-      $tH = $maxY - $minY;
+      $objW = $maxX - $minX;
+      $objH = $maxY - $minY;
 
-      /*
-       * We need to represent each command individually because every one
-       * of them needs to be transformed differently. I'm sure there's some
-       * cleverer way of doing this, but I don't know what that is.
-       */
       $i = 0;
       foreach ($object as $o) {
         $id = self::$id++;
@@ -715,10 +921,11 @@ class A2S_SVGPath {
         $oW = $o['width'];
         $oH = $o['height'];
 
+        $this->applyTransformToPath('scale', $o, array($objW/$oW, $objH/$oH));
+        $this->applyTransformToPath('translate', $o, array($minX, $minY));
+
         foreach ($o['path'] as $cmd) {
-          /* Run our transformation on every command */
-          $svgCmd = $this->scaleTransform($cmd, $minX, $minY, $tW, $tH, $oW, $oH);
-          $out .= "$svgCmd ";
+          $out .= join(' ', $cmd) . ' ';
         }
         $out .= '" ';
 
