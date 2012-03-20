@@ -38,7 +38,7 @@
 <path id="path7" marker-end="url(#Pointer)" d="M 166.5 72 L 193.5 72 " />
 <path id="path8" marker-start="url(#iPointer)" d="M 193.5 56 L 220.5 56 " />
 </g>
-<g id="text" fill="black" style="font-family:monospace;font-size:15.2px" >
+<g id="text" fill="black" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Vera Mono,monospace;font-size:15.2px" >
 <text x="26.1" y="108.8" fill="#fff" >ascii </text>
 <text x="116.1" y="108.8" fill="#fff" >2</text>
 <text x="179.1" y="108.8" fill="#fff" >svg </text>

@@ -1408,7 +1408,7 @@ SVG;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
-        "font-family:monospace;font-size:{$fSize}px");
+        "font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Vera Mono,monospace;font-size:{$fSize}px");
 
     /*
      * Text gets the same scanning treatment as boxes. We do left-to-right
