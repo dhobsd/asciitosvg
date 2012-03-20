@@ -19,7 +19,7 @@
       <path d="M 10 0 L 10 10 L 0 5 z" />
     </marker>
     <marker id="Pointer"
-      viewBox="0 0 10 10" refX="0" refY="5" 
+      viewBox="0 0 10 10" refX="5" refY="5" 
       markerUnits="strokeWidth"
       markerWidth="8" markerHeight="7"
       orient="auto">
