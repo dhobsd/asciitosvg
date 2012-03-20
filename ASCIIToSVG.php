@@ -462,8 +462,16 @@ class SVGPath {
     $this->text[] = $t;
   }
 
+  public function getText() {
+    return $this->text;
+  }
+
   public function setID($id) {
     $this->name = str_replace(' ', '_', str_replace('"', '_', $id));
+  }
+
+  public function getID() {
+    return $this->name;
   }
 
   /*
@@ -898,6 +906,10 @@ class SVGText {
     $this->name = str_replace(' ', '_', str_replace('"', '_', $id));
   }
 
+  public function getID() {
+    return $this->name;
+  }
+
   public function getPoint() {
     return $this->point;
   }
@@ -1069,6 +1081,8 @@ SVG;
     }
 
     $this->parseText();
+
+    $this->injectCommands();
   }
 
   /*
@@ -1586,6 +1600,52 @@ SVG;
             $this->svgObjects->addObject($t);
           }
         }
+      }
+    }
+  }
+
+  /*
+   * Allow specifying references that target an object starting at grid point
+   * (ROW,COL). This allows styling of lines, boxes, or any text object.
+   */
+  private function injectCommands() {
+    $boxes = $this->svgObjects->getGroup('boxes');
+    $lines = $this->svgObjects->getGroup('lines');
+    $text = $this->svgObjects->getGroup('text');
+
+    foreach ($boxes as $obj) {
+      $objPoints = $obj->getPoints();
+      $pointCmd = "{$objPoints[0]->gridY},{$objPoints[0]->gridX}";
+
+      if (isset($this->commands[$pointCmd])) {
+        $obj->setOptions($this->commands[$pointCmd]);
+      }
+
+      foreach ($obj->getText() as $text) {
+        $textPoint = $text->getPoint();
+        $pointCmd = "{$textPoint->gridY},{$textPoint->gridX}";
+
+        if (isset($this->commands[$pointCmd])) {
+          $text->setOptions($this->commands[$pointCmd]);
+        }
+      }
+    }
+
+    foreach ($lines as $obj) {
+      $objPoints = $obj->getPoints();
+      $pointCmd = "{$objPoints[0]->gridY},{$objPoints[0]->gridX}";
+
+      if (isset($this->commands[$pointCmd])) {
+        $obj->setOptions($this->commands[$pointCmd]);
+      }
+    }
+
+    foreach ($text as $obj) {
+      $objPoint = $obj->getPoint();
+      $pointCmd = "{$objPoint->gridY},{$objPoint->gridX}";
+
+      if (isset($this->commands[$pointCmd])) {
+        $obj->setOptions($this->commands[$pointCmd]);
       }
     }
   }

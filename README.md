@@ -224,6 +224,20 @@ This method is (in my opinion) much nicer than the one provided by ditaa:
 But that's just me. If you have thoughts on how to do this for lines,
 please do let me know.
 
+#### Special References #####################################################
+
+It is possible to reference an object by its starting row and column. The
+rows and columns start at (0, 0) in the top left of the diagram. Such
+references should only be made for stable diagrams, and only if you *really*
+need to style text or a line in some particular way. Such references are
+marked by starting the line with `[R,C]` where `R` is the numeric row and 
+`C` is the numeric column.
+
+Note that boxes start from their top left corner. Text starts from the first
+non-whitespace character on a line (and only traverses a single space in
+between text points). Lines start from the left-most point on the line that
+is not adjoined to any other objects.
+
 ### Basics: Special Objects #################################################
 
 There was some pretty nifty functionality in ditaa for special box types.
