@@ -1482,6 +1482,9 @@ SVG;
      * Either way, this isn't UTF-8 safe (thanks, PHP!!!), so that'll require
      * thought regardless.
      */
+    $boxes = $this->svgObjects->getGroup('boxes');
+    $bound = count($boxes);
+
     foreach ($this->grid as $row => $line) {
       $cols = count($line);
       for ($i = 0; $i < $cols; $i++) {
@@ -1491,8 +1494,6 @@ SVG;
 
           /* Time to figure out which (if any) box we live inside */
           $tP = $t->getPoint();
-          $boxes = $this->svgObjects->getGroup('boxes');
-          $bound = count($boxes);
 
           $maxPoint = new A2S_Point(-1, -1);
           $boxQueue = array();
@@ -1522,7 +1523,7 @@ SVG;
              * specific fill.
              */
             for ($j = count($boxQueue) - 1; $j >= 0; $j--) {
-              $fill = $boxes[$j]->getOption('fill');
+              $fill = $boxQueue[$j]->getOption('fill');
 
               if ($fill == 'none' || $fill == null) {
                 continue;
