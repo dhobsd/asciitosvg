@@ -1190,8 +1190,10 @@ SVG;
             $se = $this->getChar($r + 1, $c + 1);
             $ne = $this->getChar($r - 1, $c + 1);
             if ($se == "\\") {
+              $line->addMarker($c, $r, Point::IMARKER);
               $dir = self::DIR_SE;
             } elseif ($ne == '/') {
+              $line->addMarker($c, $r, Point::IMARKER);
               $dir = self::DIR_NE;
             }
           }
@@ -1203,6 +1205,7 @@ SVG;
             $dir = self::DIR_DOWN;
           } elseif ($this->getChar($r + 1, $c + 1) == "\\") {
             /* Don't need to check west for diagonals. */
+            $line->addMarker($c, $r, Point::IMARKER);
             $dir = self::DIR_SE;
           }
           break;
@@ -1220,6 +1223,7 @@ SVG;
             $line->addMarker($c, $r, Point::IMARKER);
             $dir = self::DIR_UP;
           } elseif ($this->getChar($r - 1, $c + 1) == '/') {
+            $line->addMarker($c, $r, Point::IMARKER);
             $dir = self::DIR_NE;
           }
           break;
@@ -1523,7 +1527,6 @@ SVG;
       $cur = $this->getChar($r, $c);
     }
 
-    /* Diagonals must not have corners, so we don't care about this. */ 
     if ($this->isCorner($cur)) {
       if ($cur == '.' || $cur == "'") {
         $path->addPoint($c, $r, Point::CONTROL);
@@ -1546,6 +1549,9 @@ SVG;
       $e = $this->getChar($r, $c + 1);
       $w = $this->getChar($r, $c - 1);
       $next = $this->getChar($r + $rInc, $c + $cInc);
+
+      $se = $this->getChar($r + 1, $c + 1);
+      $ne = $this->getChar($r - 1, $c + 1);
       
       if ($this->isCorner($next) || $this->isEdge($next, $dir)) {
         return $this->walk($path, $r + $rInc, $c + $cInc, $dir);
@@ -1569,6 +1575,12 @@ SVG;
       } elseif ($dir != self::DIR_RIGHT &&
                 ($this->isCorner($w) || $this->isEdge($w, self::DIR_LEFT))) {
         return $this->walk($path, $r, $c - 1, self::DIR_LEFT);
+      } elseif ($dir == self::DIR_SE &&
+                ($this->isCorner($ne) || $this->isEdge($ne, self::DIR_NE))) {
+        return $this->walk($path, $r - 1, $c + 1, self::DIR_NE);
+      } elseif ($dir == self::DIR_NE &&
+                ($this->isCorner($se) || $this->isEdge($se, self::DIR_SE))) {
+        return $this->walk($path, $r + 1, $c + 1, self::DIR_SE);
       }
     } elseif ($this->isMarker($cur)) {
       /* We found a marker! Add it. */
@@ -1849,12 +1861,22 @@ SVG;
         $rInc = ($p->gridY > $nP->gridY) ? -1 : 1;
         $bound = max($p->gridY, $nP->gridY) - min($p->gridY, $nP->gridY);
 
-        for ($j = 0; $j < $bound; $j++) {
-          $this->grid[$r][$c++] = ' ';
+        /*
+         * This looks like an off-by-one, but it is not. This clears the
+         * corner, if one exists.
+         */
+        for ($j = 0; $j <= $bound; $j++) {
+          $char = $this->getChar($r, $c);
+          if ($char == '/' || $char == "\\" || $this->isMarker($char)) {
+            $this->grid[$r][$c++] = ' ';
+          } elseif ($this->isCorner($char)) {
+            $this->clearCorners[] = array($r, $c++);
+          }
           $r += $rInc;
         }
 
         $this->grid[$p->gridY][$p->gridX] = ' ';
+        break;
       }
     }
   }
@@ -1943,7 +1965,7 @@ SVG;
 
   private function isEdge($char, $dir = null) {
     if ($dir == null) {
-      return $char == '-' || $char == '|' || $char == ':' || $char == '=' || $char == '*';
+      return $char == '-' || $char == '|' || $char == ':' || $char == '=' || $char == '*' || $char == '/' || $char == "\\";
     } elseif ($dir == self::DIR_UP || $dir == self::DIR_DOWN) {
       return $char == '|' || $char == ':' || $char == '*';
     } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {

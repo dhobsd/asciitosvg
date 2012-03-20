@@ -126,14 +126,16 @@ included for demo, feel free to send it my way!)
 ### Basics: Boxes and Lines #################################################
 
 Boxes can be polygons of almost any shape (don't try anything too wacky
-just yet; I haven't). Lines are supported on a horizontal / vertical axis
-(diagonals are definitely being considered so that I can fully support
-[App::Asciio][4]'s output). Edges of boxes and lines can be drawn by using
-the following characters:
+just yet; I haven't). Horizontal, vertical, and diagonal lines are all
+supported, giving ASCIIToSVG basically complete support for output from
+[App::Asciio][4]. Edges of boxes and lines can be drawn by using the
+following characters:
 
  * `-` or `=`: Horizontal lines (dash, equals)
  * `|` or `:`: Vertical line (pipe, colon)
  * `*`: Line of ambiguous direction (asterisk)
+ * `\` or `/`: Diagonal line (backward slash, forward slash)
+ * `+`: Edge of line passing through a box or line corner (plus)
 
 The existence of a `:` or `=` edge on a line causes that line to be
 rendered as a dashed line.
@@ -141,23 +143,30 @@ rendered as a dashed line.
 To draw a box or turn a line, you need to specify corners. The following
 characters are valid corner characters:
 
- * `/` and `\`: Quadratic Bézier corners (forward slash, backslash). These
-   should not be relied on for rounded corners as they will eventually be
-   deprecated for use as diagonal lines.
- * `'` and `.`: Also quadratic Bézier corners, but for tighter turns
-   (apostrophe, period)
+ * `'` and `.`: Quadratic Bézier corners (apostrophe, period)
+ * `#`: Boxed, angular, 90 degree corners for boxes (hash)
+ * `+`: Boxed, angular, 90 degree corners for lines (plus)
 
 The `+` token is a control point for lines. It denotes an area where a line
 intersects another line or traverses a box boundary.
 
-A simple box with a line pointing at it:
+A simple box with 3 rounded corners and a line pointing at it:
 
-    .----------.
+    #----------.
     |          | <---------
     '----------'
 
-Oh yes, that brings me to markers. Markers can be attached at the end of a
-line to give it a nice arrow by using one of the following characters:
+#### A Quick Note on Diagonals ##############################################
+
+Diagonal lines cannot be made to form a closed box. If you would like to
+make diagrams using parallelograms / diamonds (perhaps for flow charts), it
+is recommended that you annotate regular boxes and use custom objects (see
+below) instead. Diagonal lines also may not use `'` or `.` smoothed corners.
+
+### Basics: Markers #########################################################
+
+Markers can be attached at the end of a line to give it a nice arrow by
+using one of the following characters:
 
  * `<`: Left marker (less than)
  * `>`: Right marker (greater than)
