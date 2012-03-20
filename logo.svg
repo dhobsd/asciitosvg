@@ -26,23 +26,43 @@
       <path d="M 0 0 L 10 5 L 0 10 z" />
     </marker>
   </defs><g id="boxes" stroke="black" stroke-width="2" fill="none" >
-<path id="path0" filter="url(#dsFilter)" fill="#88d" d="M 4.5 18 Q 4.5 8 14.5 8 L 228.5 8 Q 238.5 8 238.5 18 L 238.5 126 Q 238.5 136 228.5 136 L 14.5 136 Q 4.5 136 4.5 126 Z" />
-<path id="path1" filter="url(#dsFilter)" fill="#fff" d="M 22.5 50 Q 22.5 40 32.5 40 L 48.5 40 Q 58.5 40 58.5 30 L 66.5 40 Q 76.5 40 76.5 50 L 76.5 78 Q 76.5 88 66.5 88 L 68.5 88 Q 58.5 88 58.5 78 L 32.5 88 Q 22.5 88 22.5 78 Z" />
-<path id="path2" filter="url(#dsFilter)" fill="#fff" d="M 94.5 50 Q 94.5 40 104.5 40 L 138.5 40 Q 148.5 40 148.5 50 L 148.5 78 Q 148.5 88 138.5 88 L 104.5 88 Q 94.5 88 94.5 78 Z" />
-<path id="path3" filter="url(#dsFilter)" fill="#fff" d="M 166.5 50 Q 166.5 40 176.5 40 L 210.5 40 Q 220.5 40 220.5 50 L 220.5 78 Q 220.5 88 210.5 88 L 176.5 88 Q 166.5 88 166.5 78 Z" />
-<path id="path4" filter="url(#dsFilter)" fill="#fff" d="M 40.5 66 Q 40.5 56 50.5 56 L 48.5 56 Q 58.5 56 58.5 66 L 58.5 62 Q 58.5 72 48.5 72 L 50.5 72 Q 40.5 72 40.5 62 Z" />
+<g id="groupLogo">
+	<path id="pathLogo" filter="url(#dsFilter)" fill="#88d" d="M 4.5 18 Q 4.5 8 14.5 8 L 228.5 8 Q 238.5 8 238.5 18 L 238.5 126 Q 238.5 136 228.5 136 L 14.5 136 Q 4.5 136 4.5 126 Z" />
+	<text x="26.1" y="108.8" id="textLogo" fill="#fff" stroke="none" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:15.2px" >ascii </text>
+
+	<text x="116.1" y="108.8" id="textLogo" fill="#fff" stroke="none" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:15.2px" >2</text>
+
+	<text x="179.1" y="108.8" id="textLogo" fill="#fff" stroke="none" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:15.2px" >svg </text>
+
+</g>
+<g id="group2">
+	<path id="path2" filter="url(#dsFilter)" fill="#fff" d="M 22.5 50 Q 22.5 40 32.5 40 L 48.5 40 Q 58.5 40 58.5 30 L 66.5 40 Q 76.5 40 76.5 50 L 76.5 78 Q 76.5 88 66.5 88 L 68.5 88 Q 58.5 88 58.5 78 L 32.5 88 Q 22.5 88 22.5 78 Z" />
+</g>
+<g id="group5">
+	<path id="path5" filter="url(#dsFilter)" fill="#fff" d="M 94.5 50 Q 94.5 40 104.5 40 L 138.5 40 Q 148.5 40 148.5 50 L 148.5 78 Q 148.5 88 138.5 88 L 104.5 88 Q 94.5 88 94.5 78 Z" />
+</g>
+<g id="group7">
+	<path id="path7" filter="url(#dsFilter)" fill="#fff" d="M 166.5 50 Q 166.5 40 176.5 40 L 210.5 40 Q 220.5 40 220.5 50 L 220.5 78 Q 220.5 88 210.5 88 L 176.5 88 Q 166.5 88 166.5 78 Z" />
+</g>
+<g id="group9">
+	<path id="path9" filter="url(#dsFilter)" fill="#fff" d="M 40.5 66 Q 40.5 56 50.5 56 L 48.5 56 Q 58.5 56 58.5 66 L 58.5 62 Q 58.5 72 48.5 72 L 50.5 72 Q 40.5 72 40.5 62 Z" />
+</g>
 </g>
 <g id="lines" stroke="black" stroke-width="2" fill="none" >
-<path id="path5" marker-end="url(#Pointer)" d="M 94.5 56 L 121.5 56 " />
-<path id="path6" marker-start="url(#iPointer)" d="M 121.5 72 L 148.5 72 " />
-<path id="path7" marker-end="url(#Pointer)" d="M 166.5 72 L 193.5 72 " />
-<path id="path8" marker-start="url(#iPointer)" d="M 193.5 56 L 220.5 56 " />
+<g id="group148">
+	<path id="path148" marker-end="url(#Pointer)" d="M 94.5 56 L 121.5 56 " />
 </g>
-<g id="text" fill="black" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Vera Mono,monospace;font-size:15.2px" >
-<text x="26.1" y="108.8" fill="#fff" >ascii </text>
-<text x="116.1" y="108.8" fill="#fff" >2</text>
-<text x="179.1" y="108.8" fill="#fff" >svg </text>
-<text x="8.1" y="156.8" >https://9vx.org/~dho/a2s/ </text>
-<text x="-0.9" y="188.8" ></text>
+<g id="group185">
+	<path id="path185" marker-start="url(#iPointer)" d="M 121.5 72 L 148.5 72 " />
+</g>
+<g id="group245">
+	<path id="path245" marker-end="url(#Pointer)" d="M 166.5 72 L 193.5 72 " />
+</g>
+<g id="group280">
+	<path id="path280" marker-start="url(#iPointer)" d="M 193.5 56 L 220.5 56 " />
+</g>
+</g>
+<g id="text" fill="black" style="font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:15.2px" >
+<text x="8.1" y="156.8" id="text3" fill="#000" >https://9vx.org/~dho/a2s/ </text>
 </g>
 </svg>

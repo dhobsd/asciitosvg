@@ -338,6 +338,8 @@ class A2S_SVGPath {
   private $options;
   private $points;
   private $flags;
+  private $text;
+  private $name;
 
   private static $id = 0;
 
@@ -346,7 +348,9 @@ class A2S_SVGPath {
   public function __construct() {
     $this->options = array();
     $this->points = array();
+    $this->text = array();
     $this->flags = 0;
+    $this->name = self::$id++;
   }
 
   /*
@@ -454,6 +458,14 @@ class A2S_SVGPath {
     return ($this->flags & self::CLOSED);
   }
 
+  public function addText($t) {
+    $this->text[] = $t;
+  }
+
+  public function setID($id) {
+    $this->name = str_replace(' ', '_', str_replace('"', '_', $id));
+  }
+
   /*
    * Set options as a JSON string. Specified as a merge operation so that it
    * can be called after an individual setOption call.
@@ -489,12 +501,12 @@ class A2S_SVGPath {
 
     $bound = count($this->points);
     for ($i = 0, $j = count($this->points) - 1; $i < $bound; $i++) {
-      if (($this->points[$i]->y < $y && $this->points[$j]->y >= $y ||
-           $this->points[$j]->y < $y && $this->points[$i]->y >= $y) &&
-          ($this->points[$i]->x <= $x || $this->points[$j]->x <= $x)) {
-        if ($this->points[$i]->x + ($y - $this->points[$i]->y) /
-            ($this->points[$j]->y - $this->points[$i]->y) *
-            ($this->points[$j]->x - $this->points[$i]->x) < $x) {
+      if (($this->points[$i]->gridY < $y && $this->points[$j]->gridY >= $y ||
+           $this->points[$j]->gridY < $y && $this->points[$i]->gridY >= $y) &&
+          ($this->points[$i]->gridX <= $x || $this->points[$j]->gridX <= $x)) {
+        if ($this->points[$i]->gridX + ($y - $this->points[$i]->gridY) /
+            ($this->points[$j]->gridY - $this->points[$i]->gridY) *
+            ($this->points[$j]->gridX - $this->points[$i]->gridX) < $x) {
           $oddNodes = !$oddNodes;
         }
       }
@@ -527,6 +539,8 @@ class A2S_SVGPath {
    *
    * Generally, SVG path commands specify absolute positions when the command
    * is capitalized and relative positions when lowercased.
+   *
+   * XXX: needs to support all SVG path commands.
    */
   private function scaleTransform($cmd, $x, $y, $w, $h, $oW, $oH) {
     /* Calculate our new proportions for scaling on the X / Y axis */
@@ -634,6 +648,8 @@ class A2S_SVGPath {
     $startPoint = array_shift($this->points);
     $endPoint = $this->points[count($this->points) - 1];
 
+    $out = "<g id=\"group{$this->name}\">\n";
+
     /*
      * If someone has specified one of our special object types, we are going
      * to want to completely override any of the pathing that we would have
@@ -683,11 +699,10 @@ class A2S_SVGPath {
        * of them needs to be transformed differently. I'm sure there's some
        * cleverer way of doing this, but I don't know what that is.
        */
-      $out = '<g>';
       $i = 0;
       foreach ($object as $o) {
         $id = self::$id++;
-        $out .= "<path id=\"$id\" d=\"";
+        $out .= "\t<path id=\"path{$this->name}\" d=\"";
 
         $oW = $o['width'];
         $oH = $o['height'];
@@ -706,9 +721,15 @@ class A2S_SVGPath {
           }
         }
 
-        $out .= ' />';
+        $out .= " />\n";
       }
-      $out .= '</g>';
+
+      if (count($this->text) > 0) {
+        foreach ($this->text as $text) {
+          $out .= "\t" . $text->render() . "\n";
+        }
+      }
+      $out .= "</g>\n";
 
       /* Bazinga. */
       return $out;
@@ -833,13 +854,21 @@ class A2S_SVGPath {
       $this->options['fill'] = '#fff';
     }
 
-    /* Generate our path definition. */
-    $out = "<path id=\"path{$id}\" ";
+
+    $out .= "\t<path id=\"path{$this->name}\" ";
     foreach ($this->options as $opt => $val) {
       $out .= "$opt=\"$val\" ";
     }
     $out .= "d=\"{$path}\" />\n";
     
+    if (count($this->text) > 0) {
+      foreach ($this->text as $text) {
+        $text->setID($this->name);
+        $out .= "\t" . $text->render() . "\n";
+      }
+    }
+
+    $out .= "</g>\n";
     return $out;
   }
 }
@@ -851,14 +880,22 @@ class A2S_SVGText {
   private $options;
   private $string;
   private $point;
+  private $name;
+
+  private static $id = 0;
 
   public function __construct($x, $y) {
     $this->point = new A2S_Point($x, $y);
+    $this->name = self::$id++;
     $this->options = array();
   }
 
   public function setOption($opt, $val) {
     $this->options[$opt] = $val;
+  }
+
+  public function setID($id) {
+    $this->name = str_replace(' ', '_', str_replace('"', '_', $id));
   }
 
   public function getPoint() {
@@ -870,7 +907,7 @@ class A2S_SVGText {
   }
 
   public function render() {
-    $out = "<text x=\"{$this->point->x}\" y=\"{$this->point->y}\" ";
+    $out = "<text x=\"{$this->point->x}\" y=\"{$this->point->y}\" id=\"text{$this->name}\" ";
     foreach ($this->options as $opt => $val) {
       $out .= "$opt=\"$val\" ";
     }
@@ -1114,7 +1151,12 @@ SVG;
             if ($skip == false) {
               /* Search for any references for styling this polygon; add it */
               $path->setOption('filter', 'url(#dsFilter)');
-              $this->findCommands($path);
+              $name = $this->findCommands($path);
+
+              if ($name != '') {
+                $path->setID($name);
+              }
+
               $this->svgObjects->addObject($path);
             }
           }
@@ -1408,7 +1450,7 @@ SVG;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
-        "font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Vera Mono,monospace;font-size:{$fSize}px");
+        "font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:{$fSize}px");
 
     /*
      * Text gets the same scanning treatment as boxes. We do left-to-right
@@ -1428,10 +1470,41 @@ SVG;
           $tP = $t->getPoint();
           $boxes = $this->svgObjects->getGroup('boxes');
           $bound = count($boxes);
+
+          $maxPoint = new A2S_Point(-1, -1);
+          $boxQueue = array();
+
           for ($j = 0; $j < $bound; $j++) {
-            /* N.B. We may want to make sure it has the while string */
-            if ($boxes[$j]->hasPoint($tP->x, $tP->y)) {
+            if ($boxes[$j]->hasPoint($tP->gridX, $tP->gridY)) {
+              $boxPoints = $boxes[$j]->getPoints();
+              $boxTL = $boxPoints[0];
+
+              /*
+               * This text is in this box, but it may still be in a more
+               * specific nested box. Find the box with the highest top
+               * left X,Y coordinate. Keep a queue of boxes in case the top
+               * most box doesn't have a fill.
+               */
+              if ($boxTL->y > $maxPoint->y && $boxTL->x > $maxPoint->x) {
+                $maxPoint->x = $boxTL->x;
+                $maxPoint->y = $boxTL->y;
+                $boxQueue[] = $boxes[$j];
+              }
+            }
+          }
+
+          if (count($boxQueue) > 0) {
+            /*
+             * Work backwards through the boxes to find the box with the most
+             * specific fill.
+             */
+            for ($j = count($boxQueue) - 1; $j >= 0; $j--) {
               $fill = $boxes[$j]->getOption('fill');
+
+              if ($fill == 'none' || $fill == null) {
+                continue;
+              }
+
               if (substr($fill, 0, 1) != '#') {
                 if (!isset($GLOBALS['A2S_colors'][strtolower($fill)])) {
                   continue;
@@ -1471,9 +1544,16 @@ SVG;
                 if ($bFill - $bText < 125 || $bDiff < 500) {
                   /* If black is too dark, white will work */
                   $t->setOption('fill', '#fff');
+                } else {
+                  $t->setOption('fill', '#000');
                 }
+
+                break;
               }
             }
+          } else {
+            /* This text isn't inside a box; make it black */
+            $t->setOption('fill', '#000');
           }
 
           /* We found a stringy character, eat it and the rest. */
@@ -1487,8 +1567,24 @@ SVG;
             }
           }
 
+          if ($str == '') {
+            continue;
+          }
+
           $t->setString($str);
-          $this->svgObjects->addObject($t);
+
+          /*
+           * If we were in a box, group with the box. Otherwise it gets its
+           * own group.
+           */
+          if (count($boxQueue) > 0) {
+            $t->setOption('stroke', 'none');
+            $t->setOption('style',
+              "font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:{$fSize}px");
+            $boxQueue[count($boxQueue) - 1]->addText($t);
+          } else {
+            $this->svgObjects->addObject($t);
+          }
         }
       }
     }
@@ -1933,6 +2029,8 @@ SVG;
         }
       }
     }
+
+    return $ref;
   }
   
   /*
