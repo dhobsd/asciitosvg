@@ -897,6 +897,8 @@ class A2S_ASCIIToSVG {
   const DIR_DOWN  = 0x2;
   const DIR_LEFT  = 0x4;
   const DIR_RIGHT = 0x8;
+  const DIR_NE    = 0x10;
+  const DIR_SE    = 0x20;
 
   public function __construct($data) {
     /* For debugging purposes */
@@ -1051,8 +1053,7 @@ SVG;
         if ($this->isCorner($char)) {
           $path = new A2S_SVGPath();
 
-          /* Slanted corners mean curved corners */
-          if ($char == "\\" || $char == '/' || $char == '.' || $char == "'") {
+          if ($char == '.' || $char == "'") {
             $path->addPoint($col, $row, A2S_Point::CONTROL);
           } else {
             $path->addPoint($col, $row);
@@ -1185,6 +1186,14 @@ SVG;
           if ($this->isEdge($e, self::DIR_RIGHT) || $this->isCorner($e)) {
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_RIGHT;
+          } else {
+            $se = $this->getChar($r + 1, $c + 1);
+            $ne = $this->getChar($r - 1, $c + 1);
+            if ($se == "\\") {
+              $dir = self::DIR_SE;
+            } elseif ($ne == '/') {
+              $dir = self::DIR_NE;
+            }
           }
           break;
         case '^':
@@ -1192,6 +1201,9 @@ SVG;
           if ($this->isEdge($s, self::DIR_DOWN) || $this->isCorner($s)) { 
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_DOWN;
+          } elseif ($this->getChar($r + 1, $c + 1) == "\\") {
+            /* Don't need to check west for diagonals. */
+            $dir = self::DIR_SE;
           }
           break;
         case '>':
@@ -1200,12 +1212,15 @@ SVG;
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_LEFT;
           }
+          /* All diagonals come from west, so we don't need to check */
           break;
         case 'v':
           $n = $this->getChar($r - 1, $c);
           if ($this->isEdge($n, self::DIR_UP) || $this->isCorner($n)) {
             $line->addMarker($c, $r, A2S_Point::IMARKER);
             $dir = self::DIR_UP;
+          } elseif ($this->getChar($r - 1, $c + 1) == '/') {
+            $dir = self::DIR_NE;
           }
           break;
 
@@ -1266,6 +1281,26 @@ SVG;
           break;
 
         /*
+         * We can only find diagonals going north or south and east. This is
+         * simplified due to the fact that they have no corners. We are
+         * guaranteed to run into their westernmost point or their relevant
+         * marker.
+         */
+        case '/':
+          $ne = $this->getChar($r-1, $c+1);
+          if ($ne == '/' || $ne == '^' || $ne == '>') {
+            $dir = self::DIR_NE;
+          }
+          break;
+
+        case "\\":
+          $se =  $this->getChar($r+1, $c+1);
+          if ($se == "\\" || $se == "v" || $se == '>') {
+            $dir = self::DIR_SE;
+          }
+          break;
+
+        /*
          * The corner case must consider all four directions. Though a
          * reasonable person wouldn't use slant corners for this, they are
          * considered corners, so it kind of makes sense to handle them the
@@ -1275,9 +1310,8 @@ SVG;
          */
         case '.':
         case "'":
-        case "\\":
-        case '/':
         case '+':
+        case '#':
           $n = $this->getChar($r-1, $c);
           $w = $this->getChar($r, $c-1);
           $s = $this->getChar($r+1, $c);
@@ -1323,6 +1357,10 @@ SVG;
             $rInc = 0; $cInc = 1;
           } elseif ($dir == self::DIR_LEFT) {
             $rInc = 0; $cInc = -1;
+          } elseif ($dir == self::DIR_NE) {
+            $rInc = -1; $cInc = 1;
+          } elseif ($dir == self::DIR_SE) {
+            $rInc = 1; $cInc = 1;
           }
 
           /*
@@ -1378,7 +1416,7 @@ SVG;
     foreach ($this->grid as $row => $line) {
       $cols = count($line);
       for ($i = 0; $i < $cols; $i++) {
-        if ($this->grid[$row][$i] != ' ') {
+        if ($this->getChar($row, $i) != ' ') {
           /* More magic numbers that probably need research. */
           $t = new A2S_SVGText($i - .6, $row + 0.3);
 
@@ -1435,9 +1473,9 @@ SVG;
           }
 
           /* We found a stringy character, eat it and the rest. */
-          $str = $this->grid[$row][$i++];
-          while ($i < count($line) && $this->grid[$row][$i] != ' ') {
-            $str .= $this->grid[$row][$i++];
+          $str = $this->getChar($row, $i++);
+          while ($i < count($line) && $this->getChar($row, $i) != ' ') {
+            $str .= $this->getChar($row, $i++);
             /* Eat up to 1 space */
             if ($this->getChar($row, $i) == ' ') {
               $str .= ' ';
@@ -1465,9 +1503,12 @@ SVG;
     if ($dir == self::DIR_RIGHT || $dir == self::DIR_LEFT) {
       $cInc = ($dir == self::DIR_RIGHT) ? 1 : -1;
       $rInc = 0;
-    } else if ($dir == self::DIR_DOWN || $dir == self::DIR_UP) {
+    } elseif ($dir == self::DIR_DOWN || $dir == self::DIR_UP) {
       $cInc = 0;
       $rInc = ($dir == self::DIR_DOWN) ? 1 : -1;
+    } elseif ($dir == self::DIR_SE || $dir == self::DIR_NE) {
+      $cInc = 1;
+      $rInc = ($dir == self::DIR_SE) ? 1 : -1;
     }
 
     /* Follow the edge for as long as we can */
@@ -1482,8 +1523,9 @@ SVG;
       $cur = $this->getChar($r, $c);
     }
 
+    /* Diagonals must not have corners, so we don't care about this. */ 
     if ($this->isCorner($cur)) {
-      if ($cur == "\\" || $cur == '/' || $cur == '.' || $cur == "'") {
+      if ($cur == '.' || $cur == "'") {
         $path->addPoint($c, $r, A2S_Point::CONTROL);
       } else {
         $path->addPoint($c, $r);
@@ -1563,7 +1605,7 @@ SVG;
     if ($dir == self::DIR_RIGHT || $dir == self::DIR_LEFT) {
       $cInc = ($dir == self::DIR_RIGHT) ? 1 : -1;
       $rInc = 0;
-    } else if ($dir == self::DIR_DOWN || $dir == self::DIR_UP) {
+    } elseif ($dir == self::DIR_DOWN || $dir == self::DIR_UP) {
       $cInc = 0;
       $rInc = ($dir == self::DIR_DOWN) ? 1 : -1;
     }
@@ -1594,13 +1636,15 @@ SVG;
       switch ($cur) {
       case '.':
       case "'":
-      case '/':
-      case "\\":
-        $e = $path->addPoint($c, $r, A2S_Point::CONTROL);
+        $pointExists = $path->addPoint($c, $r, A2S_Point::CONTROL);
+        break;
+
+      case '#':
+        $pointExists = $path->addPoint($c, $r);
         break;
       }
 
-      if ($path->isClosed() || $e) {
+      if ($path->isClosed() || $pointExists) {
         return;
       }
 
@@ -1663,7 +1707,7 @@ SVG;
         if ($newDir == self::DIR_RIGHT || $newDir == self::DIR_LEFT) {
           $cMod = ($newDir == self::DIR_RIGHT) ? 1 : -1;
           $rMod = 0;
-        } else if ($newDir == self::DIR_DOWN || $newDir == self::DIR_UP) {
+        } elseif ($newDir == self::DIR_DOWN || $newDir == self::DIR_UP) {
           $cMod = 0;
           $rMod = ($newDir == self::DIR_DOWN) ? 1 : -1;
         }
@@ -1749,19 +1793,25 @@ SVG;
    */
   private function clearObject($obj) {
     $points = $obj->getPoints();
+    $closed = $obj->isClosed();
 
     $bound = count($points);
     for ($i = 0; $i < $bound; $i++) {
       $p = $points[$i];
 
       if ($i == count($points) - 1) {
-        $nP = $points[0];
+        /* This keeps us from handling end of line to start of line */
+        if ($closed) {
+          $nP = $points[0];
+        } else {
+          $nP = null;
+        }
       } else {
         $nP = $points[$i+1];
       }
 
       /* If we're on the same vertical axis as our next point... */
-      if ($p->gridX == $nP->gridX) {
+      if ($nP != null && $p->gridX == $nP->gridX) {
         /* ...traverse the vertical line from the minimum to maximum points */
         $maxY = max($p->gridY, $nP->gridY);
         for ($j = min($p->gridY, $nP->gridY); $j <= $maxY; $j++) {
@@ -1773,7 +1823,7 @@ SVG;
             $this->clearCorners[] = array($j, $p->gridX);
           }
         }
-      } elseif ($p->gridY == $nP->gridY) {
+      } elseif ($nP != null && $p->gridY == $nP->gridY) {
         /* Same horizontal plane; traverse from min to max point */
         $maxX = max($p->gridX, $nP->gridX);
         for ($j = min($p->gridX, $nP->gridX); $j <= $maxX; $j++) {
@@ -1785,6 +1835,26 @@ SVG;
             $this->clearCorners[] = array($p->gridY, $j);
           }
         }
+      } elseif ($nP != null && $closed == false && $p->gridX != $nP->gridX &&
+                $p->gridY != $nP->gridY) {
+        /*
+         * This is a diagonal line starting from the westernmost point. It
+         * must contain max(p->gridY, nP->gridY) - min(p->gridY, nP->gridY)
+         * segments, and we can tell whether to go north or south depending
+         * on which side of zero p->gridY - nP->gridY lies. There are no
+         * corners in diagonals, so we don't have to keep those around.
+         */
+        $c = $p->gridX;
+        $r = $p->gridY;
+        $rInc = ($p->gridY > $nP->gridY) ? -1 : 1;
+        $bound = max($p->gridY, $nP->gridY) - min($p->gridY, $nP->gridY);
+
+        for ($j = 0; $j < $bound; $j++) {
+          $this->grid[$r][$c++] = ' ';
+          $r += $rInc;
+        }
+
+        $this->grid[$p->gridY][$p->gridX] = ' ';
       }
     }
   }
@@ -1878,15 +1948,19 @@ SVG;
       return $char == '|' || $char == ':' || $char == '*';
     } elseif ($dir == self::DIR_LEFT || $dir == self::DIR_RIGHT) {
       return $char == '-' || $char == '=' || $char == '*';
+    } elseif ($dir == self::DIR_NE) {
+      return $char == '/';
+    } elseif ($dir == self::DIR_SE) {
+      return $char == "\\";
     }
   }
 
   private function isBoxCorner($char) {
-    return $char == '.' || $char == "'";
+    return $char == '.' || $char == "'" || $char == '#';
   }
 
   private function isCorner($char) {
-    return $char == '+' || $char == "\\" || $char == '/' || $char == '.' || $char == "'";
+    return $char == '.' || $char == "'" || $char == '#' || $char == '+';
   }
 
   private function isMarker($char) {
