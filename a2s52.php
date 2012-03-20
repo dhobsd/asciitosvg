@@ -1368,10 +1368,19 @@ SVG;
          * character in both the horizontal and vertical case. And then
          * mentally overlay them and consider that :).
          */
-        case '.':
-        case "'":
         case '+':
         case '#':
+          $ne = $this->getChar($r-1, $c+1);
+          $se =  $this->getChar($r+1, $c+1);
+          if ($ne == '/' || $ne == '^' || $ne == '>') {
+            $dir = self::DIR_NE;
+          } elseif ($se == "\\" || $se == "v" || $se == '>') {
+            $dir = self::DIR_SE;
+          }
+          /* FALLTHROUGH */
+
+        case '.':
+        case "'":
           $n = $this->getChar($r-1, $c);
           $w = $this->getChar($r, $c-1);
           $s = $this->getChar($r+1, $c);
