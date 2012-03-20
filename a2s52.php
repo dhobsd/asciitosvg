@@ -1565,6 +1565,10 @@ SVG;
                 break;
               }
             }
+
+            if ($j < 0) {
+              $t->setOption('fill', '#000');
+            }
           } else {
             /* This text isn't inside a box; make it black */
             $t->setOption('fill', '#000');
@@ -1656,7 +1660,8 @@ SVG;
    * sure that there are ways to formulate lines to screw this walker up,
    * but it does a good enough job right now.
    */
-  private function walk($path, $row, $col, $dir) {
+  private function walk($path, $row, $col, $dir, $d = 0) {
+    $d++;
     $r = $row;
     $c = $col;
 
@@ -1708,35 +1713,35 @@ SVG;
 
       $se = $this->getChar($r + 1, $c + 1);
       $ne = $this->getChar($r - 1, $c + 1);
-      
+
       if ($this->isCorner($next) || $this->isEdge($next, $dir)) {
-        return $this->walk($path, $r + $rInc, $c + $cInc, $dir);
+        return $this->walk($path, $r + $rInc, $c + $cInc, $dir, $d);
       } elseif ($dir != self::DIR_DOWN &&
                 ($this->isCorner($n) || $this->isEdge($n, self::DIR_UP))) {
         /* Can't turn up into bottom corner */
         if (($cur != '.' && $cur != "'") || ($cur == '.' && $n != '.') ||
               ($cur == "'" && $n != "'")) {
-          return $this->walk($path, $r - 1, $c, self::DIR_UP);
+          return $this->walk($path, $r - 1, $c, self::DIR_UP, $d);
         }
       } elseif ($dir != self::DIR_UP && 
                 ($this->isCorner($s) || $this->isEdge($s, self::DIR_DOWN))) {
         /* Can't turn down into top corner */
         if (($cur != '.' && $cur != "'") || ($cur == '.' && $s != '.') ||
               ($cur == "'" && $s != "'")) {
-          return $this->walk($path, $r + 1, $c, self::DIR_DOWN);
+          return $this->walk($path, $r + 1, $c, self::DIR_DOWN, $d);
         }
       } elseif ($dir != self::DIR_LEFT &&
                 ($this->isCorner($e) || $this->isEdge($e, self::DIR_RIGHT))) {
-        return $this->walk($path, $r, $c + 1, self::DIR_RIGHT);
+        return $this->walk($path, $r, $c + 1, self::DIR_RIGHT, $d);
       } elseif ($dir != self::DIR_RIGHT &&
                 ($this->isCorner($w) || $this->isEdge($w, self::DIR_LEFT))) {
-        return $this->walk($path, $r, $c - 1, self::DIR_LEFT);
+        return $this->walk($path, $r, $c - 1, self::DIR_LEFT, $d);
       } elseif ($dir == self::DIR_SE &&
                 ($this->isCorner($ne) || $this->isEdge($ne, self::DIR_NE))) {
-        return $this->walk($path, $r - 1, $c + 1, self::DIR_NE);
+        return $this->walk($path, $r - 1, $c + 1, self::DIR_NE, $d);
       } elseif ($dir == self::DIR_NE &&
                 ($this->isCorner($se) || $this->isEdge($se, self::DIR_SE))) {
-        return $this->walk($path, $r + 1, $c + 1, self::DIR_SE);
+        return $this->walk($path, $r + 1, $c + 1, self::DIR_SE, $d);
       }
     } elseif ($this->isMarker($cur)) {
       /* We found a marker! Add it. */
