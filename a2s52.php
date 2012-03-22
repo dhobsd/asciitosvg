@@ -316,6 +316,9 @@ class A2S_SVGGroup {
     foreach($this->groups as $groupName => $objects) {
       $out .= "<g id=\"{$groupName}\" ";
       foreach ($this->options[$groupName] as $opt => $val) {
+        if (strpos($opt, 'a2s:', 0) === 0) {
+          continue;
+        }
         $out .= "$opt=\"$val\" ";
       }
       $out .= ">\n";
@@ -883,7 +886,6 @@ class A2S_SVGPath {
     if (isset($this->options['a2s:type']) &&
         isset(A2S_CustomObjects::$objects[$this->options['a2s:type']])) {
       $object = A2S_CustomObjects::$objects[$this->options['a2s:type']];
-      unset($this->options['a2s:type']);
 
       /* Again, if no fill was specified, specify one. */
       if (!isset($this->options['fill'])) {
@@ -932,6 +934,9 @@ class A2S_SVGPath {
         /* Don't add options to sub-paths */
         if ($i++ < 1) {
           foreach ($this->options as $opt => $val) {
+            if (strpos($opt, 'a2s:', 0) === 0) {
+              continue;
+            }
             $out .= "$opt=\"$val\" ";
           }
         }
@@ -1072,6 +1077,9 @@ class A2S_SVGPath {
 
     $out .= "\t<path id=\"path{$this->name}\" ";
     foreach ($this->options as $opt => $val) {
+      if (strpos($opt, 'a2s:', 0) === 0) {
+        continue;
+      }
       $out .= "$opt=\"$val\" ";
     }
     $out .= "d=\"{$path}\" />\n";
@@ -1128,6 +1136,9 @@ class A2S_SVGText {
   public function render() {
     $out = "<text x=\"{$this->point->x}\" y=\"{$this->point->y}\" id=\"text{$this->name}\" ";
     foreach ($this->options as $opt => $val) {
+      if (strpos($opt, 'a2s:', 0) === 0) {
+        continue;
+      }
       $out .= "$opt=\"$val\" ";
     }
     $out .= ">";
@@ -2294,8 +2305,6 @@ SVG;
             $label = null;
           }
 
-          unset($this->commands[$ref]['a2s:delref']);
-          unset($this->commands[$ref]['a2s:label']);
           $len = strlen($ref) + 2;
           for ($i = 0; $i < $len; $i++) {
             if (strlen($label) > $i) {
