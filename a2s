@@ -78,6 +78,8 @@ if (isset($opts['o'])) {
         echo "Cannot write to output file {$opts['o']}.\n";
         exit(1);
       }
+      
+      $outFile = $opts['o'];
     } else {
       if (!is_writable($opts['o'])) {
         echo "Output file {$opts['o']} is not writable.\n";

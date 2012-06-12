@@ -114,7 +114,7 @@ class CustomObjects {
       self::$objects = $fn();
       return;
     } else {
-      if (is_readable($cacheFile)) {
+      if (is_readable($cacheFile) && is_readable($dir)) {
         $cacheTime = filemtime($cacheFile);
 
         if (filemtime($dir) <= filemtime($cacheFile)) {
