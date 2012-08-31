@@ -1663,6 +1663,11 @@ SVG;
            */
           $this->clearObject($line);
           $this->svgObjects->addObject($line);
+
+          /* We may be able to find more lines starting from this same point */
+          if ($this->isCorner($char)) {
+            $r--;
+          }
         }
       }
     }
