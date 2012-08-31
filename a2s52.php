@@ -249,6 +249,8 @@ class A2S_Point {
   const CONTROL  = 0x2;
   const SMARKER  = 0x4;
   const IMARKER  = 0x8;
+  const TICK     = 0x10;
+  const DOT      = 0x20;
 
   public function __construct($x, $y) {
     $this->flags = 0;
@@ -340,6 +342,7 @@ class A2S_SVGGroup {
 class A2S_SVGPath {
   private $options;
   private $points;
+  private $ticks;
   private $flags;
   private $text;
   private $name;
@@ -352,6 +355,7 @@ class A2S_SVGPath {
     $this->options = array();
     $this->points = array();
     $this->text = array();
+    $this->ticks = array();
     $this->flags = 0;
     $this->name = self::$id++;
   }
@@ -452,6 +456,12 @@ class A2S_SVGPath {
     $p = new A2S_Point($x, $y);
     $p->flags |= $t;
     $this->points[] = $p;
+  }
+
+  public function addTick($x, $y, $t) {
+    $p = new A2S_Point($x, $y);
+    $p->flags |= $t;
+    $this->ticks[] = $p;
   }
 
   /*
@@ -1088,6 +1098,26 @@ class A2S_SVGPath {
       foreach ($this->text as $text) {
         $text->setID($this->name);
         $out .= "\t" . $text->render() . "\n";
+      }
+    }
+
+    $bound = count($this->ticks);
+    for ($i = 0; $i < $bound; $i++) {
+      $t = $this->ticks[$i];
+      if ($t->flags & A2S_Point::DOT) {
+        $out .= "<circle cx=\"{$t->x}\" cy=\"{$t->y}\" r=\"3\" fill=\"black\" />";
+      } elseif ($t->flags & A2S_Point::TICK) {
+        $x1 = $t->x - 4;
+        $y1 = $t->y - 4;
+        $x2 = $t->x + 4;
+        $y2 = $t->y + 4;
+        $out .= "<line x1=\"$x1\" y1=\"$y1\" x2=\"$x2\" y2=\"$y2\" stroke-width=\"1\" />";
+
+        $x1 = $t->x + 4;
+        $y1 = $t->y - 4;
+        $x2 = $t->x - 4;
+        $y2 = $t->y + 4;
+        $out .= "<line x1=\"$x1\" y1=\"$y1\" x2=\"$x2\" y2=\"$y2\" stroke-width=\"1\" />";
       }
     }
 
@@ -1916,6 +1946,10 @@ SVG;
         $path->setOption('stroke-dasharray', '5 5');
       }
 
+      if ($this->isTick($cur)) {
+        $path->addTick($c, $r, ($cur == 'o') ? A2S_Point::DOT : A2S_Point::TICK);
+      }
+
       $c += $cInc;
       $r += $rInc;
       $cur = $this->getChar($r, $c);
@@ -2223,10 +2257,12 @@ SVG;
         for ($j = min($p->gridY, $nP->gridY); $j <= $maxY; $j++) {
           $char = $this->getChar($j, $p->gridX);
 
-          if ($this->isEdge($char) || $this->isMarker($char)) {
+          if (!$this->isTick($char) && $this->isEdge($char) || $this->isMarker($char)) {
             $this->grid[$j][$p->gridX] = ' ';
-          } elseif($this->isCorner($char)) {
+          } elseif ($this->isCorner($char)) {
             $this->clearCorners[] = array($j, $p->gridX);
+          } elseif ($this->isTick($char)) {
+            $this->grid[$j][$p->gridX] = '+';
           }
         }
       } elseif ($nP != null && $p->gridY == $nP->gridY) {
@@ -2235,10 +2271,12 @@ SVG;
         for ($j = min($p->gridX, $nP->gridX); $j <= $maxX; $j++) {
           $char = $this->getChar($p->gridY, $j);
 
-          if ($this->isEdge($char) || $this->isMarker($char)) {
+          if (!$this->isTick($char) && $this->isEdge($char) || $this->isMarker($char)) {
             $this->grid[$p->gridY][$j] = ' ';
-          } elseif($this->isCorner($char)) {
+          } elseif ($this->isCorner($char)) {
             $this->clearCorners[] = array($p->gridY, $j);
+          } elseif ($this->isTick($char)) {
+            $this->grid[$p->gridY][$j] = '+';
           }
         }
       } elseif ($nP != null && $closed == false && $p->gridX != $nP->gridX &&
@@ -2265,6 +2303,8 @@ SVG;
             $this->grid[$r][$c++] = ' ';
           } elseif ($this->isCorner($char)) {
             $this->clearCorners[] = array($r, $c++);
+          } elseif ($this->isTick($char)) {
+            $this->grid[$r][$c] = '+';
           }
           $r += $rInc;
         }
@@ -2358,6 +2398,10 @@ SVG;
   }
 
   private function isEdge($char, $dir = null) {
+    if ($char == 'o' || $char == 'x') {
+      return true;
+    }
+
     if ($dir == null) {
       return $char == '-' || $char == '|' || $char == ':' || $char == '=' || $char == '*' || $char == '/' || $char == "\\";
     } elseif ($dir == self::DIR_UP || $dir == self::DIR_DOWN) {
@@ -2381,6 +2425,10 @@ SVG;
 
   private function isMarker($char) {
     return $char == 'v' || $char == '^' || $char == '<' || $char == '>';
+  }
+
+  private function isTick($char) {
+    return $char == 'o' || $char == 'x';
   }
 }
 
