@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php # vim:ts=2:sw=2:et:ft=php
 /*
  * a2s: CLI utility for ASCIIToSVG
