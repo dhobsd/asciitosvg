@@ -1948,6 +1948,7 @@ SVG;
 
       if ($this->isTick($cur)) {
         $path->addTick($c, $r, ($cur == 'o') ? A2S_Point::DOT : A2S_Point::TICK);
+        $path->addPoint($c, $r);
       }
 
       $c += $cInc;
