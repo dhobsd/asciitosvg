@@ -2032,7 +2032,7 @@ SVG;
        * Not a corner, not a marker, and we already ate edges. Whatever this
        * is, it is not part of the line.
        */
-      $path->addPoint($c, $r);
+      $path->addPoint($c - $cInc, $r - $rInc);
       return;
     }
   }
