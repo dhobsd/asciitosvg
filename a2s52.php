@@ -1278,15 +1278,14 @@ class A2S_ASCIIToSVG {
 <svg width="{$canvasWidth}px" height="{$canvasHeight}px" version="1.1"
   xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
+    <filter id="dsFilterNoBlur" width="150%" height="150%">
+      <feOffset result="offOut" in="SourceGraphic" dx="3" dy="3"/>
+      <feColorMatrix result="matrixOut" in="offOut" type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0"/>
+      <feBlend in="SourceGraphic" in2="matrixOut" mode="normal"/>
+    </filter>
     <filter id="dsFilter" width="150%" height="150%">
       <feOffset result="offOut" in="SourceGraphic" dx="3" dy="3"/>
-SVG;
-
-    if ($this->blurDropShadow) {
-      $out .= '<feColorMatrix result="matrixOut" in="offOut" type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0"/>';
-    }
-
-    $out .= <<<SVG
+      <feColorMatrix result="matrixOut" in="offOut" type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0"/>
       <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="3"/>
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal"/>
     </filter>
@@ -1420,7 +1419,12 @@ SVG;
 
             if ($skip == false) {
               /* Search for any references for styling this polygon; add it */
-              $path->setOption('filter', 'url(#dsFilter)');
+              if ($this->blurDropShadow) {
+                $path->setOption('filter', 'url(#dsFilter)');
+              } else {
+                $path->setOption('filter', 'url(#dsFilterNoBlur)');
+              }
+
               $name = $this->findCommands($path);
 
               if ($name != '') {
