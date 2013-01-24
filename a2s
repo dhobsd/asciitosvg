@@ -34,11 +34,13 @@ require_once 'ASCIIToSVG.php';
 
 error_reporting(E_ALL|E_STRICT);
 
-$opts = getopt("hi::o::s::");
+$opts = getopt("bf::hi::o::s::");
 
 if (isset($opts['h'])) {
   echo <<<USAGE
 Usage: a2s [-i[-|filename]] [-o[-|filename]] [-sx-scale,y-scale]
+  -b: Disable drop-shadow blur.
+  -f: Font family to use.
   -h: This usage screen.
   -i: Path to input text file. If unspecified, or set to "-" (hyphen),
       stdin is used.
@@ -106,6 +108,15 @@ if (isset($opts['s'])) {
 }
 
 $o = new ASCIIToSVG($input);
+
+if (isset($opts['b'])) {
+  $o->blurDropShadow = false;
+}
+
+if (isset($opts['f'])) {
+  $o->fontFamily = $opts['f'];
+}
+
 $o->setDimensionScale($scale[0], $scale[1]);
 $o->parseGrid();
 

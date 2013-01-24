@@ -122,7 +122,7 @@ class CustomObjects {
           return;
         }
       } else {
-        $cacheTime = 0;
+        return;
       }
     }
 
@@ -1183,6 +1183,9 @@ class SVGText {
  * above classes.
  */
 class ASCIIToSVG {
+  public $blurDropShadow = true;
+  public $fontFamily = "Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace";
+
   private $rawData;
   private $grid;
 
@@ -1260,9 +1263,8 @@ class ASCIIToSVG {
       }
     }
 
-    /* Add a fudge factor for drop-shadow and gaussian blur */
-    $canvasWidth = $canvasWidth * $o->xScale + 30;
-    $canvasHeight = count($this->grid) * $o->yScale + 30;
+    $canvasWidth = $canvasWidth * $o->xScale;
+    $canvasHeight = count($this->grid) * $o->yScale;
 
     /*
      * Boilerplate header with definitions that we might be using for markers
@@ -1278,7 +1280,13 @@ class ASCIIToSVG {
   <defs>
     <filter id="dsFilter" width="150%" height="150%">
       <feOffset result="offOut" in="SourceGraphic" dx="3" dy="3"/>
-      <feColorMatrix result="matrixOut" in="offOut" type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0"/>
+SVG;
+
+    if ($this->blurDropShadow) {
+      $out .= '<feColorMatrix result="matrixOut" in="offOut" type="matrix" values="0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0"/>';
+    }
+
+    $out .= <<<SVG
       <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="3"/>
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal"/>
     </filter>
@@ -1726,7 +1734,7 @@ SVG;
     $this->svgObjects->pushGroup('text');
     $this->svgObjects->setOption('fill', 'black');
     $this->svgObjects->setOption('style',
-        "font-family:Consolas,Monaco,Anonymous Pro,Anonymous,Bitstream Sans Mono,monospace;font-size:{$fSize}px");
+        "font-family:{$this->fontFamily};font-size:{$fSize}px");
 
     /*
      * Text gets the same scanning treatment as boxes. We do left-to-right
