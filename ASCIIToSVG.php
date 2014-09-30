@@ -102,8 +102,8 @@ class CustomObjects {
 
 
   public static function loadObjects() {
-    $cacheFile = sys_get_temp_dir() . "/.a2s.objcache";
-    $dir = './objects';
+    $cacheFile = getenv('HOME') . '/.a2s/objcache';
+    $dir = getenv('HOME') . '/.a2s/objects';
 
     if (is_callable(self::$loadCacheFn)) {
       /*
@@ -121,7 +121,7 @@ class CustomObjects {
           self::$objects = unserialize(file_get_contents($cacheFile));
           return;
         }
-      } else {
+      } else if (file_exists($cacheFile)) {
         return;
       }
     }
@@ -1263,7 +1263,7 @@ class ASCIIToSVG {
       }
     }
 
-    $canvasWidth = $canvasWidth * $o->xScale;
+    $canvasWidth = $canvasWidth * $o->xScale + 10;
     $canvasHeight = count($this->grid) * $o->yScale;
 
     /*
