@@ -1137,6 +1137,17 @@ class SVGText {
 
   private static $id = 0;
 
+  private static function svgEntities($str) {
+    /* <, >, and & replacements are valid without a custom DTD:
+     * https://www.w3.org/TR/xml/#syntax
+     *
+     * We want to replace these in text without confusing SVG.
+     */
+    $s = array('<', '>', '&');
+    $r = array('&lt;', '&gt;', '&amp;');
+    return str_replace($s, $r, $str);
+  }
+
   public function __construct($x, $y) {
     $this->point = new Point($x, $y);
     $this->name = self::$id++;
@@ -1172,7 +1183,7 @@ class SVGText {
       $out .= "$opt=\"$val\" ";
     }
     $out .= ">";
-    $out .= htmlentities($this->string);
+    $out .= SVGText::svgEntities($this->string);
     $out .= "</text>\n";
     return $out;
   }
@@ -1225,14 +1236,14 @@ class ASCIIToSVG {
     $data = preg_replace('/^\[([^\]]+)\](:?)\s+.*/ims', '', $data);
 
     /*
-     * Treat our ASCII field as a grid and store each character as a point in
+     * Treat our UTF-8 field as a grid and store each character as a point in
      * that grid. The (0, 0) coordinate on this grid is top-left, just as it
      * is in images.
      */
     $this->grid = explode("\n", $data);
 
     foreach ($this->grid as $k => $line) {
-      $this->grid[$k] = str_split($line);
+      $this->grid[$k] = preg_split('//u', $line, null, PREG_SPLIT_NO_EMPTY);
     }
 
     $this->svgObjects = new SVGGroup();
@@ -1271,10 +1282,10 @@ class ASCIIToSVG {
      * and drop shadows.
      */
     $out = <<<SVG
-<?xml version="1.0" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Created with ASCIIToSVG (http://9vx.org/~dho/a2s/) -->
+<!-- Created with ASCIIToSVG (https://github.com/dhobsd/asciitosvg/) -->
 <svg width="{$canvasWidth}px" height="{$canvasHeight}px" version="1.1"
   xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
