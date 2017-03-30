@@ -1304,6 +1304,7 @@ class ASCIIToSVG {
       viewBox="0 0 10 10" refX="5" refY="5" 
       markerUnits="strokeWidth"
       markerWidth="8" markerHeight="7"
+      fill="black"
       orient="auto">
       <path d="M 10 0 L 10 10 L 0 5 z" />
     </marker>
@@ -1311,6 +1312,7 @@ class ASCIIToSVG {
       viewBox="0 0 10 10" refX="5" refY="5" 
       markerUnits="strokeWidth"
       markerWidth="8" markerHeight="7"
+      fill="black"
       orient="auto">
       <path d="M 0 0 L 10 5 L 0 10 z" />
     </marker>
