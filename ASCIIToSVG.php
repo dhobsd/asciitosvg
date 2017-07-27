@@ -1143,8 +1143,8 @@ class SVGText {
      *
      * We want to replace these in text without confusing SVG.
      */
-    $s = array('<', '>', '&');
-    $r = array('&lt;', '&gt;', '&amp;');
+    $s = array('&','<', '>');
+    $r = array('&amp;', '&lt;', '&gt;');
     return str_replace($s, $r, $str);
   }
 
