@@ -924,7 +924,11 @@ class SVGPath {
 
       $objW = $maxX - $minX;
       $objH = $maxY - $minY;
-
+      
+      if (isset($this->options['a2s:link'])) {
+        $out .="<a xlink:href=\"".$this->options['a2s:link']."\">";
+      }
+      
       $i = 0;
       foreach ($object as $o) {
         $id = self::$id++;
@@ -959,6 +963,11 @@ class SVGPath {
           $out .= "\t" . $text->render() . "\n";
         }
       }
+      
+      if (isset($this->options['a2s:link'])) {
+        $out .="</a>";
+      }
+      
       $out .= "</g>\n";
 
       /* Bazinga. */
@@ -1084,23 +1093,32 @@ class SVGPath {
       $this->options['fill'] = '#fff';
     }
 
-
-    $out .= "\t<path id=\"path{$this->name}\" ";
+    $out_p = "\t<path id=\"path{$this->name}\" ";
     foreach ($this->options as $opt => $val) {
       if (strpos($opt, 'a2s:', 0) === 0) {
-        continue;
+        if ($opt=='a2s:link') {
+    	  $alnk = $val;
+        }
+    	continue;
       }
-      $out .= "$opt=\"$val\" ";
+      $out_p .= "$opt=\"$val\" ";
     }
-    $out .= "d=\"{$path}\" />\n";
+    if (isset($alnk)) {
+      $out_p = "\t<a xlink:href=\"".$alnk."\">".$out_p;
+    }
+    $out_p .= "d=\"{$path}\" />\n";
     
     if (count($this->text) > 0) {
       foreach ($this->text as $text) {
-        $text->setID($this->name);
-        $out .= "\t" . $text->render() . "\n";
+        $out_p .= "\t" . $text->render() . "\n";
       }
     }
 
+    if (isset($alnk)) {
+      $out_p .= '</a>';
+    }    
+    $out .= $out_p;
+    
     $bound = count($this->ticks);
     for ($i = 0; $i < $bound; $i++) {
       $t = $this->ticks[$i];
