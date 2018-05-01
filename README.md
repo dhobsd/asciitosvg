@@ -11,6 +11,16 @@
                       '-------------------------'
                        https://9vx.org/~dho/a2s/
 
+# WARNING ###################################################################
+
+I haven't written PHP in years, and this implementation has numerous
+drawbacks. I recommend you look into using the
+[Go implementation](https://github.com/asciitosvg/asciitosvg) instead. I will
+continue to accept, review, and merge PRs to this repository, and (where
+appropriate) mirror any new functionality in the Go version, but I do not
+intend to identify new bugs, fux old bugs, or self-author new functionality
+in this repository.
+
 ## Introduction #############################################################
 
 ### License #################################################################
