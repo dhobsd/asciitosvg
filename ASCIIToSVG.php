@@ -599,7 +599,7 @@ class SVGPath {
   private function rotateTransform($angle, $x, $y, $cX = 0, $cY = 0) {
     $angle = $angle * (pi() / 180);
     if ($cX != 0 || $cY != 0) {
-      list ($x, $y) = $this->translateTransform($cX, $cY, $x, $y);
+      list ($x, $y) = $this->translateTransform(-$cX, -$cY, $x, $y);
     }
 
     $matrix = array(array(cos($angle), -sin($angle), 0),
@@ -608,7 +608,7 @@ class SVGPath {
     $ret = $this->matrixTransform($matrix, $x, $y);
 
     if ($cX != 0 || $cY != 0) {
-      list ($x, $y) = $this->translateTransform(-$cX, -$cY, $ret[0], $ret[1]);
+      list ($x, $y) = $this->translateTransform($cX, $cY, $ret[0], $ret[1]);
       $ret[0] = $x;
       $ret[1] = $y;
     }
